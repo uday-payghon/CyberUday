@@ -1,242 +1,299 @@
-# 🛡️ CyberUday
+# 🛡️ Cyber Uday
 
-> **AI-Powered Cyber Security Awareness, Threat Detection & Incident Reporting Platform**
+<div align="center">
 
-CyberUday is a modern Flutter application designed to educate users about cybersecurity, help identify digital threats, report cyber incidents, and provide AI-assisted security guidance through a clean, intuitive interface.
+### 🇮🇳 AI-Powered National Cyber Safety & Incident Response Platform
+
+**Empowering citizens with AI-driven cyber protection, secure incident reporting, digital awareness, and real-time assistance.**
+
+Built with ❤️ using Flutter, Spring Boot, AI & Cloud Technologies.
+
+</div>
 
 ---
 
-## 🚀 Features
+# 🌟 Vision
 
-### 🧠 AI Cyber Assistant
-- AI-powered cybersecurity chatbot
-- Security awareness guidance
-- Instant answers to cyber-related queries
+Cyber Uday aims to become an intelligent cybersecurity ecosystem that bridges the gap between citizens, cybersecurity experts, financial institutions, and government authorities.
 
-### 📊 Interactive Dashboard
-- Security overview
-- Personalized user experience
-- Quick access to all modules
+Our mission is to make cybercrime reporting, prevention, digital awareness, and emergency response accessible through a single AI-powered platform.
 
-### 📰 Cyber News
-- Latest cybersecurity news
-- Emerging threats
-- Security awareness updates
+---
 
-### 🛡️ Threat Scanner
-- Analyze suspicious links
-- Detect common phishing indicators
-- Cyber hygiene recommendations
+# 🎯 Problem Statement
 
-### 🚨 Report Cyber Crime
-- Secure cyber incident reporting
-- User-friendly reporting interface
-- Structured report submission
+Millions of users face:
 
-### 📚 Security Learning
-- Cyber awareness sessions
+- Phishing attacks
+- UPI & Banking fraud
+- Fake investment scams
+- Identity theft
+- Social media hacking
+- Cyber bullying
+- Malware infections
+
+Most victims don't know:
+
+- whom to contact,
+- how to preserve evidence,
+- how to report incidents,
+- or how to protect themselves afterwards.
+
+Cyber Uday aims to solve this problem.
+
+---
+
+# 🚀 Core Features
+
+## 🤖 AI Cyber Assistant
+
+- Intelligent cybersecurity chatbot
+- Cyber awareness guidance
+- Fraud prevention assistance
+- Security recommendations
+
+---
+
+## 🛡️ Threat Scanner
+
+Analyze
+
+- Suspicious URLs
+- QR Codes
+- SMS
+- Email links
+
+using Edge AI.
+
+---
+
+## 🚨 Cyber Crime Reporting
+
+Users can report
+
+- Banking fraud
+- UPI fraud
+- Identity theft
+- Online scams
+- Social media abuse
+- Cyber harassment
+
+with structured digital evidence.
+
+---
+
+## 📰 Cyber Intelligence
+
+- Latest cyber attacks
+- Security news
+- Government advisories
+- Threat intelligence
+
+---
+
+## 📚 Cyber Awareness Hub
+
+Interactive learning
+
+- Security tips
+- Awareness campaigns
+- Safe digital practices
 - Educational resources
-- Practical security tips
 
-### ☎️ Emergency Contacts
-- Important cyber emergency helplines
-- Quick access during emergencies
+---
 
-### 🌐 Multi-language Support
-- Localization support
-- Improved accessibility
+## 📞 Emergency Support
 
-### 🔐 Authentication
+Quick access to
+
+- Cyber Helpline
+- Emergency Contacts
+- Reporting Authorities
+
+---
+
+## 🌍 Multi-language Support
+
+Designed for multilingual accessibility.
+
+---
+
+## 🔐 Secure Authentication
+
+- JWT Authentication
 - Firebase Authentication
-- Secure login & registration
-- Role-based access
-
-### 👨‍💼 Admin Panel
-- Administrative dashboard
-- Content management
-- User monitoring
+- Role-based Access Control
 
 ---
 
-# 📱 Screenshots
+## 👨‍💼 Admin Dashboard
 
-> Screenshots will be added soon.
+Administrative portal for
 
-| Dashboard | Threat Scanner | AI Assistant |
-|-----------|----------------|--------------|
-| 📷 | 📷 | 📷 |
+- Monitoring reports
+- Managing users
+- Reviewing incidents
+- Analytics
 
 ---
 
-# 🏗️ Architecture
+# 🏗️ System Architecture
 
 ```
-Flutter UI
-      │
-      ▼
-Business Logic Layer
-      │
-      ▼
-Firebase Services
-      │
-      ├── Authentication
-      ├── Firestore
-      ├── Storage
-      └── Cloud Services
+                    Flutter Mobile App
+                           │
+───────────────────────────┼───────────────────────────
+                           │
+                    REST API Gateway
+                           │
+                  Spring Boot Backend
+                           │
+ ┌───────────────┬──────────────┬──────────────┐
+ │               │              │              │
+MySQL       Firebase      Cloud Storage      AI Engine
+ │               │              │              │
+ │               │              │        TensorFlow Lite
+ │               │              │        ML Models
+ │               │              │
+ Notification    Realtime       Evidence
+    System        Updates        Storage
 ```
 
 ---
 
-# 🛠️ Tech Stack
+# ⚙️ Technology Stack
 
-| Technology | Usage |
-|------------|------|
-| Flutter | Cross-platform Development |
-| Dart | Programming Language |
-| Firebase | Backend Services |
-| Firebase Authentication | User Authentication |
-| Cloud Firestore | Database |
-| Firebase Storage | File Storage |
-| AI APIs | Intelligent Assistance |
+## 📱 Frontend
+
+- Flutter
+- Dart
+
+---
+
+## 🌐 Admin Portal
+
+- React.js
+
+---
+
+## ☕ Backend
+
+- Java Spring Boot
+- Spring Security
+- JWT Authentication
+- Hibernate
+- REST APIs
+
+---
+
+## 🤖 Artificial Intelligence
+
+- TensorFlow Lite
+- Google ML Kit
+- Python
+- Edge AI
+
+---
+
+## 🗄 Database
+
+- MySQL
+- Firebase Realtime Database
+
+---
+
+## ☁ Cloud
+
+- AWS EC2
+- Nginx
+- Docker
+- Firebase Cloud Storage
 
 ---
 
 # 📂 Project Structure
 
 ```
+Frontend (Flutter)
+
 lib/
-│
 ├── screens/
-│   ├── home/
-│   ├── auth/
-│   ├── admin/
-│   └── splash/
-│
 ├── services/
-│
-├── widgets/
-│
 ├── models/
-│
+├── widgets/
+├── ai/
+├── localization/
 └── main.dart
+
+Backend
+
+Spring Boot
+├── Auth Service
+├── Incident Service
+├── AI Service
+├── Notification Service
+└── Admin Service
 ```
 
 ---
 
-# ⚙️ Installation
+# 🔒 Security
 
-### Clone Repository
+Cyber Uday follows modern secure development practices including:
 
-```bash
-git clone https://github.com/uday-payghon/CyberUday.git
-```
-
-### Open Project
-
-```bash
-cd CyberUday
-```
-
-### Install Dependencies
-
-```bash
-flutter pub get
-```
-
-### Run Application
-
-```bash
-flutter run
-```
+- JWT Authentication
+- Role-Based Access Control
+- HTTPS Communication
+- Secure File Uploads
+- Encrypted API Communication
+- Secure Session Management
+- Audit Logging
 
 ---
 
-# 🔥 Firebase Configuration
+# 🛣️ Development Roadmap
 
-1. Create a Firebase Project.
-2. Add Android/iOS apps.
-3. Download Firebase configuration files.
-4. Run:
+## Phase 1
+- ✅ Flutter Foundation
+- ✅ Authentication
+- 🚧 Dashboard
+- 🚧 Incident Reporting
 
-```bash
-flutterfire configure
-```
+## Phase 2
+- ⏳ Spring Boot Backend
+- ⏳ MySQL Integration
+- ⏳ AI Threat Scanner
 
----
+## Phase 3
+- ⏳ Video Consultation
+- ⏳ Cyber Community
+- ⏳ Push Notifications
 
-# 📌 Future Roadmap
-
-- ✅ AI Threat Detection
-- ✅ Malware Scanner
-- ✅ Real-time Alerts
-- ✅ Dark Web Monitoring
-- ✅ Secure Chat
-- ✅ Cyber Community
-- ✅ Government Complaint Integration
-- ✅ Digital Evidence Upload
-- ✅ Security Score Dashboard
-- ✅ Offline Emergency Support
+## Phase 4
+- ⏳ Government Integration
+- ⏳ Banking APIs
+- ⏳ National Incident Dashboard
 
 ---
 
-# 🤝 Contributing
+# 👨‍💻 Developed By
 
-Contributions are welcome!
+**Uday Payghon**
 
-1. Fork the repository
-2. Create a new branch
+Founder & Developer
 
-```bash
-git checkout -b feature-name
-```
-
-3. Commit your changes
-
-```bash
-git commit -m "Added new feature"
-```
-
-4. Push
-
-```bash
-git push origin feature-name
-```
-
-5. Open a Pull Request
+Cybersecurity • AI • GovTech
 
 ---
 
 # ⭐ Support
 
-If you like this project, consider giving it a ⭐ on GitHub.
+If you find this project interesting, consider giving it a ⭐ on GitHub.
 
 ---
 
-# 👨‍💻 Developer
+# ⚠ Disclaimer
 
-**Uday Payghon**
+Cyber Uday is currently under active development.
 
-Flutter Developer • Cybersecurity Enthusiast • AI Developer
-
-GitHub:
-https://github.com/uday-payghon
-
----
-# 👨‍💻 Core Team Developer
-**Manjushree Dighe**<br>
-**Riya Pagar**<br>
-**Anushka Shinde**
-
-# 📜 License
-
-This project is licensed under the MIT License.
-
----
-
-<div align="center">
-
-### 🛡️ Building a safer digital future with AI.
-
-Made with ❤️ using Flutter & Firebase
-
-</div>
+Some features described in this repository represent the planned product roadmap and may not yet be implemented in the current version.
