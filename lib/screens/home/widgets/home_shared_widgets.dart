@@ -105,7 +105,7 @@ class SectionCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(26),
-        color: const Color(0xFF0B1823).withOpacity(0.88),
+        color: const Color(0xFF0B1823).withValues(alpha: 0.88),
         border: Border.all(color: const Color(0xFF1E4A67)),
       ),
       child: Column(
@@ -123,28 +123,31 @@ class SectionCard extends StatelessWidget {
 }
 
 class ActionChipWidget extends StatelessWidget {
-  const ActionChipWidget({super.key, required this.label, required this.icon, this.onTap});
+  const ActionChipWidget({super.key, required this.label, required this.icon, this.onTap, this.isLoading = false});
 
   final String label;
   final IconData icon;
   final VoidCallback? onTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: isLoading ? null : onTap,
       borderRadius: BorderRadius.circular(18),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: const Color(0xFF1E4A67)),
-          color: const Color(0xFF10273A).withOpacity(0.55),
+          color: const Color(0xFF10273A).withValues(alpha: 0.55),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 18, color: const Color(0xFF3FFFD7)),
+            isLoading 
+              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3FFFD7)))
+              : Icon(icon, size: 18, color: const Color(0xFF3FFFD7)),
             const SizedBox(width: 8),
             Text(label),
           ],
@@ -155,18 +158,25 @@ class ActionChipWidget extends StatelessWidget {
 }
 
 class FieldPlaceholder extends StatelessWidget {
-  const FieldPlaceholder({super.key, required this.label});
+  const FieldPlaceholder({super.key, required this.label, this.controller, this.maxLines = 2});
 
   final String label;
+  final TextEditingController? controller;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      maxLines: 2,
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
         alignLabelWithHint: true,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF1E4A67)),
+        ),
       ),
     );
   }

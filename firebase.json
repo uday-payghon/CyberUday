@@ -1,1 +1,55 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"cyber-uday-20","appId":"1:1010516097616:android:89722108574db1c6e8ef55","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"cyber-uday-20","appId":"1:1010516097616:ios:0dddde85296ad86ee8ef55","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"macos":{"default":{"projectId":"cyber-uday-20","appId":"1:1010516097616:ios:0dddde85296ad86ee8ef55","uploadDebugSymbols":false,"fileOutput":"macos/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"cyber-uday-20","configurations":{"android":"1:1010516097616:android:89722108574db1c6e8ef55","ios":"1:1010516097616:ios:0dddde85296ad86ee8ef55","macos":"1:1010516097616:ios:0dddde85296ad86ee8ef55","web":"1:1010516097616:web:d197062f8cb7a90ee8ef55","windows":"1:1010516097616:web:49714ab220bbec1be8ef55"}}}}}}
+{
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "cyber-uday-20",
+          "appId": "1:1010516097616:android:89722108574db1c6e8ef55",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "cyber-uday-20",
+          "appId": "1:1010516097616:ios:0dddde85296ad86ee8ef55",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "cyber-uday-20",
+          "appId": "1:1010516097616:ios:0dddde85296ad86ee8ef55",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "cyber-uday-20",
+          "configurations": {
+            "android": "1:1010516097616:android:89722108574db1c6e8ef55",
+            "ios": "1:1010516097616:ios:0dddde85296ad86ee8ef55",
+            "macos": "1:1010516097616:ios:0dddde85296ad86ee8ef55",
+            "web": "1:1010516097616:web:d197062f8cb7a90ee8ef55",
+            "windows": "1:1010516097616:web:49714ab220bbec1be8ef55"
+          }
+        }
+      }
+    }
+  }
+}

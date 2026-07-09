@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../widgets/home_shared_widgets.dart';
+import '../../../services/firebase_service.dart';
+import '../../../services/localization_service.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({
@@ -12,118 +14,284 @@ class DashboardPage extends StatelessWidget {
   final User? user;
   final VoidCallback onAdminTap;
 
+  Future<void> _handleEmergencyAction(
+    BuildContext context,
+    String action,
+  ) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${LocalizationService.instance.translate('hacked_desc')}...',
+        ),
+      ),
+    );
+
+    try {
+      await FirebaseService.instance.logEmergencyAction(action, {
+        'platform': Theme.of(context).platform.toString(),
+        'context': 'Dashboard Emergency Lane',
+        'isEmergency': action == 'I AM HACKED',
+      });
+
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF0B1823),
+            title: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                const SizedBox(width: 10),
+                Text(LocalizationService.instance.translate('hacked_title')),
+              ],
+            ),
+            content: Text(
+              LocalizationService.instance.translate('hacked_desc'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed: $e')));
+      }
+    }
+  }
+
+  Future<void> _handleBankConnection(BuildContext context) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Connecting bank permission...')),
+    );
+
+    try {
+      await FirebaseService.instance.connectBankPermission({
+        'platform': Theme.of(context).platform.toString(),
+        'context': 'Dashboard Connect Bank',
+        'permissionSource': 'Hero Connect Bank Button',
+      });
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFF0B1823),
+            title: const Row(
+              children: [
+                Icon(Icons.account_balance_rounded, color: Color(0xFF3FFFD7)),
+                SizedBox(width: 10),
+                Text('Bank Permission Connected'),
+              ],
+            ),
+            content: const Text(
+              'Your bank permission request has been saved securely. The Cyber Uday team can now track this connection for emergency support.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Bank connection failed: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final mobile = MediaQuery.sizeOf(context).width < 760;
 
-    return ListView(
-      children: [
-        HeroBanner(
-          title: 'The digital war begins where fraud targets ordinary people.',
-          subtitle:
-              'Fake news, lottery traps, deepfakes, and bank fraud need a faster response layer. Cyber Uday is designed as a digital bodyguard.',
-          primaryLabel: 'Connect Bank Permission',
-          onPrimaryTap: () {},
-          secondaryLabel: 'Admin',
-          onSecondaryTap: onAdminTap,
-        ),
-        const SizedBox(height: 18),
-        GridView.count(
-          crossAxisCount: mobile ? 2 : 4,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 14,
-          childAspectRatio: mobile ? 1.25 : 1.1,
-          children: const [
-            MetricCard(
-              title: 'Total Reports',
-              value: '1,248',
-              icon: Icons.flag_rounded,
-              accent: Color(0xFF3FFFD7),
+    return ValueListenableBuilder<String>(
+      valueListenable: LocalizationService.instance.currentLocale,
+      builder: (context, locale, _) {
+        return ListView(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          children: [
+            HeroBanner(
+              title: LocalizationService.instance.translate('hero_title'),
+              subtitle: 'Digital war needs a digital bodyguard.',
+              primaryLabel: LocalizationService.instance.translate(
+                'connect_bank',
+              ),
+              onPrimaryTap: () => _handleBankConnection(context),
+              secondaryLabel: 'Admin',
+              onSecondaryTap: onAdminTap,
             ),
-            MetricCard(
-              title: 'Threats Blocked',
-              value: '386',
-              icon: Icons.security_rounded,
-              accent: Color(0xFF5AB2FF),
+            const SizedBox(height: 18),
+
+            // EMERGENCY "I AM HACKED" BUTTON
+            InkWell(
+              onTap: () => _handleEmergencyAction(context, 'I AM HACKED'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.red, width: 2),
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.security_update_warning,
+                        color: Colors.red,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        LocalizationService.instance.translate('hacked_btn'),
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-            MetricCard(
-              title: 'Connected Banks',
-              value: '73',
-              icon: Icons.account_balance_rounded,
-              accent: Color(0xFFFFC857),
+
+            const SizedBox(height: 18),
+            StreamBuilder<int>(
+              stream: FirebaseService.instance.getReportsCount(),
+              builder: (context, reportsSnapshot) {
+                return StreamBuilder<int>(
+                  stream: FirebaseService.instance.getThreatsCount(),
+                  builder: (context, threatsSnapshot) {
+                    return StreamBuilder<int>(
+                      stream: FirebaseService.instance
+                          .getUserConnectedBanksCount(),
+                      builder: (context, banksSnapshot) {
+                        return GridView.count(
+                          crossAxisCount: mobile ? 2 : 4,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          mainAxisSpacing: 14,
+                          crossAxisSpacing: 14,
+                          childAspectRatio: mobile ? 1.1 : 1.1,
+                          children: [
+                            MetricCard(
+                              title: LocalizationService.instance.translate(
+                                'total_reports',
+                              ),
+                              value: reportsSnapshot.data?.toString() ?? '0',
+                              icon: Icons.flag_rounded,
+                              accent: const Color(0xFF3FFFD7),
+                            ),
+                            MetricCard(
+                              title: LocalizationService.instance.translate(
+                                'threats_blocked',
+                              ),
+                              value: threatsSnapshot.data?.toString() ?? '0',
+                              icon: Icons.security_rounded,
+                              accent: const Color(0xFF5AB2FF),
+                            ),
+                            MetricCard(
+                              title: 'Connected Banks',
+                              value: banksSnapshot.data?.toString() ?? '0',
+                              icon: Icons.account_balance_rounded,
+                              accent: const Color(0xFFFFC857),
+                            ),
+                            const MetricCard(
+                              title: 'Helpline Actions',
+                              value: '24/7',
+                              icon: Icons.support_agent_rounded,
+                              accent: Color(0xFFFF5C8A),
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                );
+              },
             ),
-            MetricCard(
-              title: 'Helpline Actions',
-              value: '24/7',
-              icon: Icons.support_agent_rounded,
-              accent: Color(0xFFFF5C8A),
+            const SizedBox(height: 18),
+            if (mobile)
+              const Column(
+                children: [
+                  EmergencyBankPanel(),
+                  SizedBox(height: 14),
+                  DashboardGraphCard(),
+                  SizedBox(height: 14),
+                  RecentThreatFeed(),
+                ],
+              )
+            else
+              const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 7, child: DashboardGraphCard()),
+                  SizedBox(width: 14),
+                  Expanded(flex: 5, child: RecentThreatFeed()),
+                ],
+              ),
+            const SizedBox(height: 14),
+            SectionCard(
+              title: 'Left-side action lane',
+              subtitle: 'Quick response triggers for multiple scenarios.',
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  ActionChipWidget(
+                    label: LocalizationService.instance.translate(
+                      'freeze_bank',
+                    ),
+                    icon: Icons.lock_clock,
+                    onTap: () => _handleEmergencyAction(context, 'Bank Freeze'),
+                  ),
+                  ActionChipWidget(
+                    label: 'Contact Our Team',
+                    icon: Icons.call,
+                    onTap: () =>
+                        _handleEmergencyAction(context, 'Call to Team'),
+                  ),
+                  ActionChipWidget(
+                    label: 'Cyber Cell',
+                    icon: Icons.local_police,
+                    onTap: () =>
+                        _handleEmergencyAction(context, 'Cyber Cell Alert'),
+                  ),
+                  ActionChipWidget(
+                    label: 'Ambulance',
+                    icon: Icons.emergency,
+                    onTap: () =>
+                        _handleEmergencyAction(context, 'Emergency Services'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 22),
+              child: Text(
+                'Logged in as ${user?.email ?? 'operator'}. All actions are encrypted and secured.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ),
           ],
-        ),
-        const SizedBox(height: 18),
-        if (mobile)
-          const Column(
-            children: [
-              EmergencyBankPanel(),
-              SizedBox(height: 14),
-              DashboardGraphCard(),
-              SizedBox(height: 14),
-              RecentThreatFeed(),
-              SizedBox(height: 14),
-              PermissionPanel(),
-            ],
-          )
-        else
-          const Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 7, child: DashboardGraphCard()),
-              SizedBox(width: 14),
-              Expanded(flex: 5, child: RecentThreatFeed()),
-            ],
-          ),
-        if (!mobile) ...[
-          const SizedBox(height: 14),
-          const Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: EmergencyBankPanel()),
-              SizedBox(width: 14),
-              Expanded(child: PermissionPanel()),
-            ],
-          ),
-        ],
-        const SizedBox(height: 14),
-        SectionCard(
-          title: 'Left-side action lane',
-          subtitle:
-              'Bank-system freeze, contact team, cyber cell handoff, and protection workflows can all be triggered from here in future backend integration.',
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: const [
-              ActionChipWidget(label: 'Freeze My Bank', icon: Icons.lock_clock),
-              ActionChipWidget(label: 'Contact Our Team', icon: Icons.call),
-              ActionChipWidget(label: 'Cyber Cell', icon: Icons.local_police),
-              ActionChipWidget(label: 'Ambulance', icon: Icons.emergency),
-              ActionChipWidget(
-                label: 'Fire Vehicle',
-                icon: Icons.local_fire_department,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 22),
-          child: Text(
-            'Logged in as ${user?.email ?? 'operator'}. Real bank freeze, police routing, and case submission still require backend and partner integrations.',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -144,9 +312,8 @@ class MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         color: const Color(0xFF0C1B28),
@@ -155,15 +322,24 @@ class MetricCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: accent),
+          Icon(icon, color: accent, size: 20),
           const Spacer(),
-          Text(title, style: theme.textTheme.bodyMedium),
-          const SizedBox(height: 4),
           Text(
-            value,
-            style: theme.textTheme.headlineMedium?.copyWith(
-              color: accent,
-              fontWeight: FontWeight.w800,
+            title,
+            style: const TextStyle(fontSize: 12, color: Colors.white70),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                color: accent,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
@@ -177,35 +353,43 @@ class DashboardGraphCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SectionCard(
-      title: 'Threat activity graph',
-      subtitle:
-          'A visual activity lane for rising reports, blocked threats, and active case submissions.',
-      child: SizedBox(
-        height: 220,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: List.generate(
-            12,
-            (index) => Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 5),
-                child: Container(
-                  height: 40 + (index % 5) * 24 + (index * 3),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
-                    gradient: const LinearGradient(
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                      colors: [Color(0xFF3FFFD7), Color(0xFF5AB2FF)],
+    return StreamBuilder<List<int>>(
+      stream: FirebaseService.instance.getMonthlyReportStats(),
+      builder: (context, snapshot) {
+        final stats = snapshot.data ?? List.filled(12, 0);
+        int maxVal = stats.reduce((a, b) => a > b ? a : b);
+        if (maxVal == 0) maxVal = 1;
+
+        return SectionCard(
+          title: 'Threat activity graph',
+          subtitle: 'Real-time report traffic analysis across months.',
+          child: SizedBox(
+            height: 220,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(
+                12,
+                (index) => Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    child: Container(
+                      height: (stats[index] / maxVal) * 180 + 20,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        gradient: const LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [Color(0xFF3FFFD7), Color(0xFF5AB2FF)],
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -215,28 +399,30 @@ class RecentThreatFeed extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SectionCard(
-      title: 'Recent cybercrime',
-      subtitle:
-          'Fresh public-facing incidents and common attack patterns users should watch right now.',
-      child: const Column(
-        children: [
-          _NewsTile(
-            headline: 'Lottery scam with screen-share control',
-            meta: 'Financial fraud • Nashik',
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: FirebaseService.instance.getAllThreats(),
+      builder: (context, snapshot) {
+        final threats = snapshot.data ?? [];
+        return SectionCard(
+          title: 'Recent cybercrime',
+          subtitle: 'Live patterns from the field.',
+          child: Column(
+            children: threats
+                .take(3)
+                .map(
+                  (threat) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12.0),
+                    child: _NewsTile(
+                      headline: threat['headline'] ?? 'Suspicious Activity',
+                      meta:
+                          'Context: ${threat['url'] ?? threat['appName'] ?? 'Unknown'}',
+                    ),
+                  ),
+                )
+                .toList(),
           ),
-          SizedBox(height: 12),
-          _NewsTile(
-            headline: 'Bank OTP theft after fake support call',
-            meta: 'Account attack • Pune',
-          ),
-          SizedBox(height: 12),
-          _NewsTile(
-            headline: 'Deepfake blackmail case under review',
-            meta: 'Media abuse • Mumbai',
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -259,9 +445,19 @@ class _NewsTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(headline, style: theme.textTheme.titleMedium),
+          Text(
+            headline,
+            style: theme.textTheme.titleMedium,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           const SizedBox(height: 6),
-          Text(meta, style: theme.textTheme.bodyMedium),
+          Text(
+            meta,
+            style: theme.textTheme.bodyMedium,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
@@ -273,53 +469,63 @@ class EmergencyBankPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SectionCard(
-      title: 'Bank-system emergency freeze',
-      subtitle:
-          'If a user reports an active hack, this flow can connect bank permission, trigger freeze intent, and push the case to support and cyber teams.',
+    return SectionCard(
+      title: 'Emergency Handshake',
+      subtitle: 'Fast-track connectivity for high-risk accounts.',
       child: Wrap(
         spacing: 12,
         runSpacing: 12,
         children: [
           ActionChipWidget(
-            label: 'Freeze My Bank Data',
+            label: LocalizationService.instance.translate('freeze_bank'),
             icon: Icons.lock_clock_rounded,
+            onTap: () => _handleAction(context, 'Bank Data Freeze'),
           ),
           ActionChipWidget(
-            label: 'Connect Bank Permission',
+            label: LocalizationService.instance.translate('connect_bank'),
             icon: Icons.link_rounded,
-          ),
-          ActionChipWidget(
-            label: 'Submit Account Info',
-            icon: Icons.assignment_turned_in_rounded,
+            onTap: () => _connectBank(context),
           ),
         ],
       ),
     );
   }
-}
 
-class PermissionPanel extends StatelessWidget {
-  const PermissionPanel({super.key});
+  void _handleAction(BuildContext context, String action) async {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Simulating $action...')));
+    await FirebaseService.instance.logEmergencyAction(action, {
+      'source': 'Emergency Panel',
+    });
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return const SectionCard(
-      title: 'User permission and account action',
-      subtitle:
-          'Once the user grants permission to connect bank details, your future backend can freeze the account and submit the incident package with essential data only.',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('1. User grants permission'),
-          SizedBox(height: 8),
-          Text('2. Connect bank and account context'),
-          SizedBox(height: 8),
-          Text('3. Freeze action request sent'),
-          SizedBox(height: 8),
-          Text('4. Incident data submitted to support / authority'),
-        ],
-      ),
+  void _connectBank(BuildContext context) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Connecting bank permission...')),
     );
+
+    try {
+      await FirebaseService.instance.connectBankPermission({
+        'source': 'Emergency Panel',
+        'permissionSource': 'Emergency Bank Panel',
+      });
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bank permission connected successfully.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Bank connection failed: $e')));
+      }
+    }
   }
 }

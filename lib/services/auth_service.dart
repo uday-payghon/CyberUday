@@ -37,8 +37,6 @@ class AuthService {
       );
     }
 
-    // On Android, prefer the OAuth configuration generated from
-    // google-services.json instead of forcing a server client ID.
     return GoogleSignIn(scopes: const <String>['email', 'profile']);
   }
 
@@ -48,30 +46,42 @@ class AuthService {
 
   Future<UserCredential> signInWithGoogle() async {
     try {
-      final GoogleSignIn googleSignIn = _googleSignIn;
-      await googleSignIn.signOut();
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) {
-        throw const AuthFailure('Google sign-in was cancelled.');
+      if (kIsWeb) {
+        // FOR WEB: Use signInWithPopup which is more reliable than google_sign_in package
+        GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        googleProvider.addScope('email');
+        googleProvider.addScope('profile');
+        googleProvider.setCustomParameters({'prompt': 'select_account'});
+
+        return await _auth.signInWithPopup(googleProvider);
+      } else {
+        // FOR MOBILE: Use google_sign_in package
+        final GoogleSignIn googleSignIn = _googleSignIn;
+        await googleSignIn.signOut();
+        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+        if (googleUser == null) {
+          throw const AuthFailure('Google sign-in was cancelled.');
+        }
+
+        final GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+
+        final OAuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        return await _auth.signInWithCredential(credential);
       }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      return await _auth.signInWithCredential(credential);
     } on FirebaseAuthException catch (error) {
       throw AuthFailure(_firebaseMessage(error));
     } catch (error) {
       if (error is AuthFailure) {
         rethrow;
       }
+      debugPrint("Google Sign-In Error: $error");
       throw const AuthFailure(
-        'Unable to sign in with Google. Check your Firebase OAuth setup and SHA fingerprint.',
+        'Unable to sign in with Google. If on Web, ensure localhost is added to Authorized Domains in Firebase.',
       );
     }
   }
@@ -109,7 +119,9 @@ class AuthService {
   }
 
   Future<void> logout() async {
-    await _googleSignIn.signOut();
+    if (!kIsWeb) {
+      await _googleSignIn.signOut();
+    }
     await _auth.signOut();
   }
 

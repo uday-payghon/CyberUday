@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
 import '../widgets/cyber_layout.dart';
-import 'home_screen.dart';
+import 'admin_dashboard_screen.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -17,7 +16,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _submitting = false;
 
   // HARDCODED ADMIN CREDENTIALS
-  static const String _adminEmail = "admin@cyberuday.com";
+  static const String _adminEmail = "founder@cyberuday.com";
   static const String _adminPassword = "REMOVED_LEGACY_ADMIN_CREDENTIAL";
 
   @override
@@ -44,9 +43,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Admin Access Granted.')),
       );
-      // Navigate to Home or Admin Dashboard if available
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -69,7 +67,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: const Color(0xFF1E4A67)),
-          color: const Color(0xFF0B1823).withOpacity(0.82),
+          color: const Color(0xFF0B1823).withValues(alpha: 0.82),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

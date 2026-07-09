@@ -13,14 +13,17 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: AuthService.instance.authStateChanges,
       builder: (context, snapshot) {
+        // Show a themed loader while checking auth state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const _AuthGateLoader();
         }
 
-        if (snapshot.data != null) {
+        // If user is logged in, show HomeScreen
+        if (snapshot.hasData && snapshot.data != null) {
           return const HomeScreen();
         }
 
+        // Otherwise, show LoginScreen
         return const LoginScreen();
       },
     );
@@ -32,6 +35,38 @@ class _AuthGateLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return Scaffold(
+      backgroundColor: const Color(0xFF040B11),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF040B11), Color(0xFF07111A)],
+          ),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3FFFD7)),
+                strokeWidth: 3,
+              ),
+              SizedBox(height: 24),
+              Text(
+                'VERIFYING IDENTITY...',
+                style: TextStyle(
+                  color: Color(0xFF3FFFD7),
+                  letterSpacing: 2,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

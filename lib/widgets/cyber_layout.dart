@@ -47,63 +47,66 @@ class CyberLayout extends StatelessWidget {
                 }
 
                 return SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: compact ? 20 : 32,
-                    vertical: compact ? 18 : 28,
-                  ),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight - (compact ? 36 : 56),
+                      minHeight: constraints.maxHeight,
                     ),
-                    child: compact
-                        ? Column(
-                            children: [
-                              _HeroBlock(
-                                heroTag: heroTag,
-                                title: title,
-                                subtitle: subtitle,
-                              ),
-                              const SizedBox(height: 20),
-                              _PanelCard(child: panel),
-                              if (sideNote != null) ...[
-                                const SizedBox(height: 16),
-                                sideNote!,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: compact ? 20 : 32,
+                        vertical: compact ? 18 : 28,
+                      ),
+                      child: compact
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _HeroBlock(
+                                  heroTag: heroTag,
+                                  title: title,
+                                  subtitle: subtitle,
+                                ),
+                                const SizedBox(height: 20),
+                                _PanelCard(child: panel),
+                                if (sideNote != null) ...[
+                                  const SizedBox(height: 16),
+                                  sideNote!,
+                                ],
                               ],
-                            ],
-                          )
-                        : Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 28),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      _HeroBlock(
-                                        heroTag: heroTag,
-                                        title: title,
-                                        subtitle: subtitle,
-                                        alignStart: true,
-                                      ),
-                                      if (sideNote != null) ...[
-                                        const SizedBox(height: 20),
-                                        sideNote!,
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 28),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _HeroBlock(
+                                          heroTag: heroTag,
+                                          title: title,
+                                          subtitle: subtitle,
+                                          alignStart: true,
+                                        ),
+                                        if (sideNote != null) ...[
+                                          const SizedBox(height: 20),
+                                          sideNote!,
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 470,
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 470,
+                                  ),
+                                  child: _PanelCard(child: panel),
                                 ),
-                                child: _PanelCard(child: panel),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                    ),
                   ),
                 );
               },
@@ -154,79 +157,81 @@ class _AndroidCompactLayout extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFF1E4A67)),
-              color: const Color(0xFF091520).withValues(alpha: 0.84),
-            ),
-            child: Text(
-              'THREAT LEVEL: GUARDED',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: const Color(0xFF3FFFD7),
-                letterSpacing: 1.1,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFF1E4A67)),
+                color: const Color(0xFF091520).withValues(alpha: 0.84),
+              ),
+              child: Text(
+                'THREAT LEVEL: GUARDED',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: const Color(0xFF3FFFD7),
+                  letterSpacing: 1.1,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF3FFFD7), Color(0xFF5AB2FF)],
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF3FFFD7), Color(0xFF5AB2FF)],
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.shield_moon_rounded,
+                    color: Color(0xFF07111A),
+                    size: 30,
                   ),
                 ),
-                child: const Icon(
-                  Icons.shield_moon_rounded,
-                  color: Color(0xFF07111A),
-                  size: 30,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      heroTag,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: const Color(0xFF3FFFD7),
-                        letterSpacing: 1.6,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        heroTag,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: const Color(0xFF3FFFD7),
+                          letterSpacing: 1.6,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(title, style: theme.textTheme.headlineMedium),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(title, style: theme.textTheme.headlineMedium),
+                    ],
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFFB6C9D9),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFFB6C9D9),
             ),
-          ),
-          const SizedBox(height: 18),
-          _PanelCard(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: panel,
+            const SizedBox(height: 18),
+            _PanelCard(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: panel,
+              ),
             ),
-          ),
-          if (sideNote != null) ...[const SizedBox(height: 14), sideNote!],
-        ],
+            if (sideNote != null) ...[const SizedBox(height: 14), sideNote!],
+          ],
+        ),
       ),
     );
   }

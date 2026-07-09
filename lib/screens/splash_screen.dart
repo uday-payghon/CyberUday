@@ -110,7 +110,7 @@ class _SplashScreenState extends State<SplashScreen>
                             ],
                           ),
                           child: const Icon(
-                            Icons.shield_rounded,
+                            Icons.shield_moon_rounded,
                             color: Color(0xFF07111A),
                             size: 60,
                           ),
