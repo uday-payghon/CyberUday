@@ -222,6 +222,10 @@ GitHub:
 https://github.com/uday-payghon
 
 ---
+# 👨‍💻 Core Team Developer
+**Manjushree Dighe**
+**Riya Pagar**
+**Anushka Shinde**
 
 # 📜 License
 
