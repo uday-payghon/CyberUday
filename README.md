@@ -276,13 +276,32 @@ Cyber Uday follows modern secure development practices including:
 
 ---
 
-# 👨‍💻 Developed By
+# 👥 Development Team
+
+Cyber Uday is being developed collaboratively by a dedicated team focused on building an AI-powered cybersecurity ecosystem.
+
+| Name | Role |
+|------|------|
+| **Uday Payghon** | Founder • Project Lead • Flutter Developer |
+| **Manjushree Dighe** | Backend Developer (Spring Boot & APIs) |
+| **Riya Pagar** | AI/ML Engineer |
+| **Anushka Shinde** | UI/UX & Frontend Developer |
+
+---
+
+## 🎯 Project Leadership
+
+**Founder & Product Architect**
 
 **Uday Payghon**
 
-Founder & Developer
+Responsible for:
 
-Cybersecurity • AI • GovTech
+- Product Vision
+- System Architecture
+- AI Integration Planning
+- Flutter Mobile Development
+- Project Management
 
 ---
 
