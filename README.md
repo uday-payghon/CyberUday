@@ -223,8 +223,8 @@ https://github.com/uday-payghon
 
 ---
 # 👨‍💻 Core Team Developer
-**Manjushree Dighe**
-**Riya Pagar**
+**Manjushree Dighe**<br>
+**Riya Pagar**<br>
 **Anushka Shinde**
 
 # 📜 License
