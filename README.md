@@ -284,7 +284,7 @@ Cyber Uday is being developed collaboratively by a dedicated team focused on bui
 |------|------|
 | **Uday Payghon** | Founder • Project Lead • Flutter Developer |
 | **Manjushree Dighe** | Backend Developer (Spring Boot & APIs) |
-| **Riya Pagar** | AI/ML Engineer |
+| **Riya Pagar** | AI/ML Engineer (Flutter developer)|
 | **Anushka Shinde** | UI/UX & Frontend Developer |
 
 ---
