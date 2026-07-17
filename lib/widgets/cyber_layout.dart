@@ -80,7 +80,8 @@ class CyberLayout extends StatelessWidget {
                                   child: Padding(
                                     padding: const EdgeInsets.only(right: 28),
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
@@ -267,7 +268,7 @@ class _HeroBlock extends StatelessWidget {
             gradient: const LinearGradient(
               colors: [Color(0xFF3FFFD7), Color(0xFF5AB2FF)],
             ),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
                 color: Color(0x663FFFD7),
                 blurRadius: 32,

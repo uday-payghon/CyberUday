@@ -50,7 +50,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       width: 280,
       decoration: BoxDecoration(
         color: const Color(0xFF07111A),
-        border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+        border: Border(
+          right: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        ),
       ),
       child: Column(
         children: [
@@ -97,29 +99,35 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _buildMainContent() {
     switch (_activeTab) {
-      case 0: return const _AdminOverview();
-      case 1: return _AdminDataList(
-        stream: FirebaseService.instance.getAllReports(),
-        titleKey: 'description',
-        subtitleKey: 'userEmail',
-        icon: Icons.description,
-        hasPdf: true,
-      );
-      case 2: return _AdminDataList(
-        stream: FirebaseService.instance.getAllThreats(),
-        titleKey: 'headline',
-        subtitleKey: 'userEmail',
-        icon: Icons.security,
-      );
-      case 3: return _AdminDataList(
-        stream: FirebaseService.instance.getAllEmergencyActions(),
-        titleKey: 'action',
-        subtitleKey: 'userEmail',
-        icon: Icons.emergency,
-        isCritical: true,
-      );
-      case 4: return const _AdminNewsModerationList();
-      default: return const Center(child: Text('Coming Soon'));
+      case 0:
+        return const _AdminOverview();
+      case 1:
+        return _AdminDataList(
+          stream: FirebaseService.instance.getAllReports(),
+          titleKey: 'description',
+          subtitleKey: 'userEmail',
+          icon: Icons.description,
+          hasPdf: true,
+        );
+      case 2:
+        return _AdminDataList(
+          stream: FirebaseService.instance.getAllThreats(),
+          titleKey: 'headline',
+          subtitleKey: 'userEmail',
+          icon: Icons.security,
+        );
+      case 3:
+        return _AdminDataList(
+          stream: FirebaseService.instance.getAllEmergencyActions(),
+          titleKey: 'action',
+          subtitleKey: 'userEmail',
+          icon: Icons.emergency,
+          isCritical: true,
+        );
+      case 4:
+        return const _AdminNewsModerationList();
+      default:
+        return const Center(child: Text('Coming Soon'));
     }
   }
 }
@@ -169,7 +177,10 @@ class _AdminOverview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('System Overview', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+        const Text(
+          'System Overview',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 24),
         Wrap(
           spacing: 20,
@@ -206,7 +217,12 @@ class _StatCard extends StatelessWidget {
   final Color color;
   final IconData icon;
 
-  const _StatCard({required this.title, required this.stream, required this.color, required this.icon});
+  const _StatCard({
+    required this.title,
+    required this.stream,
+    required this.color,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -223,14 +239,21 @@ class _StatCard extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 32),
           const SizedBox(height: 16),
-          Text(title, style: const TextStyle(color: Colors.white60, fontSize: 16)),
+          Text(
+            title,
+            style: const TextStyle(color: Colors.white60, fontSize: 16),
+          ),
           const SizedBox(height: 8),
           StreamBuilder<int>(
             stream: stream,
             builder: (context, snapshot) {
               return Text(
                 '${snapshot.data ?? 0}',
-                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               );
             },
           ),
@@ -252,12 +275,17 @@ class _AdminNewsModerationList extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         final newsItems = snapshot.data ?? [];
-        if (newsItems.isEmpty) return const Center(child: Text('No news submissions.'));
+        if (newsItems.isEmpty) {
+          return const Center(child: Text('No news submissions.'));
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Pending Submissions', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const Text(
+              'Pending Submissions',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
             Expanded(
               child: ListView.builder(
@@ -268,24 +296,42 @@ class _AdminNewsModerationList extends StatelessWidget {
 
                   return Card(
                     color: const Color(0xFF10273A),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     margin: const EdgeInsets.only(bottom: 12),
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      title: Text(item['headline'] ?? 'Untitled News', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('By: ${item['author']} • Status: ${item['status']}'),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
+                      title: Text(
+                        item['headline'] ?? 'Untitled News',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'By: ${item['author']} • Status: ${item['status']}',
+                      ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (!isPublished)
                             IconButton(
-                              icon: const Icon(Icons.publish, color: Colors.greenAccent),
-                              onPressed: () => FirebaseService.instance.publishNews(item['id']),
+                              icon: const Icon(
+                                Icons.publish,
+                                color: Colors.greenAccent,
+                              ),
+                              onPressed: () => FirebaseService.instance
+                                  .publishNews(item['id']),
                               tooltip: 'Publish',
                             ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                            onPressed: () => FirebaseService.instance.deleteNews(item['id']),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                            ),
+                            onPressed: () =>
+                                FirebaseService.instance.deleteNews(item['id']),
                             tooltip: 'Delete',
                           ),
                         ],
@@ -338,19 +384,36 @@ class _AdminDataList extends StatelessWidget {
               color: const Color(0xFF10273A),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: isCritical ? Colors.redAccent.withValues(alpha: 0.3) : Colors.transparent),
+                side: BorderSide(
+                  color: isCritical
+                      ? Colors.redAccent.withValues(alpha: 0.3)
+                      : Colors.transparent,
+                ),
               ),
               margin: const EdgeInsets.only(bottom: 12),
               child: ListTile(
-                leading: Icon(icon, color: isCritical ? Colors.redAccent : const Color(0xFF3FFFD7)),
-                title: Text(item[titleKey] ?? 'Untitled', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold)),
+                leading: Icon(
+                  icon,
+                  color: isCritical
+                      ? Colors.redAccent
+                      : const Color(0xFF3FFFD7),
+                ),
+                title: Text(
+                  item[titleKey] ?? 'Untitled',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 subtitle: Text(item[subtitleKey] ?? 'Unknown User'),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (hasPdf)
                       IconButton(
-                        icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF3FFFD7)),
+                        icon: const Icon(
+                          Icons.picture_as_pdf,
+                          color: Color(0xFF3FFFD7),
+                        ),
                         onPressed: () => PdfService.generateReportPdf(item),
                       ),
                     const Icon(Icons.chevron_right, color: Colors.white24),
@@ -364,13 +427,15 @@ class _AdminDataList extends StatelessWidget {
       },
     );
   }
-//here is show detials sheet
+
   void _showDetailsSheet(BuildContext context, Map<String, dynamic> data) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF07111A),
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
       builder: (context) => DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.7,
@@ -382,9 +447,15 @@ class _AdminDataList extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Text('Interaction Details', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Interaction Details',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
                   const Spacer(),
-                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
                 ],
               ),
               const Divider(color: Colors.white10, height: 40),
@@ -392,15 +463,34 @@ class _AdminDataList extends StatelessWidget {
                 child: ListView(
                   controller: scrollController,
                   children: data.entries.map((e) {
-                    if (e.key == 'id' || e.key == 'createdAt' || e.key == 'publishedAt') return const SizedBox.shrink();
+                    if (e.key == 'id' ||
+                        e.key == 'createdAt' ||
+                        e.key == 'publishedAt') {
+                      return const SizedBox.shrink();
+                    }
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(e.key.toUpperCase(), style: const TextStyle(fontSize: 11, letterSpacing: 1.5, color: Color(0xFF3FFFD7), fontWeight: FontWeight.bold)),
+                          Text(
+                            e.key.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              letterSpacing: 1.5,
+                              color: Color(0xFF3FFFD7),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           const SizedBox(height: 8),
-                          SelectableText(e.value.toString(), style: const TextStyle(fontSize: 16, color: Colors.white, height: 1.5)),
+                          SelectableText(
+                            e.value.toString(),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.white,
+                              height: 1.5,
+                            ),
+                          ),
                         ],
                       ),
                     );

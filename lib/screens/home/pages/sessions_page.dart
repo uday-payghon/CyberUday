@@ -16,8 +16,8 @@ class _SessionsPageState extends State<SessionsPage> {
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 900;
 
-    final filteredExperts = _selectedCategory == 'All' 
-        ? _experts 
+    final filteredExperts = _selectedCategory == 'All'
+        ? _experts
         : _experts.where((e) => e.category == _selectedCategory).toList();
 
     return SingleChildScrollView(
@@ -28,22 +28,26 @@ class _SessionsPageState extends State<SessionsPage> {
         children: [
           const HeroBanner(
             title: 'Expert Consultations',
-            subtitle: 'Get one-on-one guidance from verified digital bodyguards and security professionals.',
+            subtitle:
+                'Get one-on-one guidance from verified digital bodyguards and security professionals.',
           ),
           const SizedBox(height: 32),
-          
+
           // Category Filter
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: ['All', 'Security', 'Legal', 'Mental Health'].map((cat) {
+              children: ['All', 'Security', 'Legal', 'Mental Health'].map((
+                cat,
+              ) {
                 final isSelected = _selectedCategory == cat;
                 return Padding(
                   padding: const EdgeInsets.only(right: 12),
                   child: ChoiceChip(
                     label: Text(cat),
                     selected: isSelected,
-                    onSelected: (val) => setState(() => _selectedCategory = cat),
+                    onSelected: (val) =>
+                        setState(() => _selectedCategory = cat),
                     selectedColor: const Color(0xFF3FFFD7),
                     backgroundColor: const Color(0xFF10273A),
                     labelStyle: TextStyle(
@@ -55,19 +59,23 @@ class _SessionsPageState extends State<SessionsPage> {
               }).toList(),
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Responsive Grid
           Center(
             child: Wrap(
               spacing: 20,
               runSpacing: 24,
               alignment: WrapAlignment.start,
-              children: filteredExperts.map((expert) => SizedBox(
-                width: isMobile ? double.infinity : 360,
-                child: _ExpertProfileCard(expert: expert),
-              )).toList(),
+              children: filteredExperts
+                  .map(
+                    (expert) => SizedBox(
+                      width: isMobile ? double.infinity : 360,
+                      child: _ExpertProfileCard(expert: expert),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
           const SizedBox(height: 60),
@@ -93,7 +101,7 @@ class _ExpertProfileCard extends StatelessWidget {
             color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
-          )
+          ),
         ],
       ),
       clipBehavior: Clip.antiAlias,
@@ -106,7 +114,10 @@ class _ExpertProfileCard extends StatelessWidget {
             width: double.infinity,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [expert.accentColor.withValues(alpha: 0.4), const Color(0xFF10273A)],
+                colors: [
+                  expert.accentColor.withValues(alpha: 0.4),
+                  const Color(0xFF10273A),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -116,19 +127,30 @@ class _ExpertProfileCard extends StatelessWidget {
                 Positioned(
                   right: -20,
                   top: -20,
-                  child: Icon(expert.icon, size: 120, color: Colors.white.withValues(alpha: 0.05)),
+                  child: Icon(
+                    expert.icon,
+                    size: 120,
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
                 ),
                 Center(
                   child: Hero(
                     tag: 'expert_icon_${expert.name}',
-                    child: Icon(expert.icon, color: expert.accentColor, size: 56),
+                    child: Icon(
+                      expert.icon,
+                      color: expert.accentColor,
+                      size: 56,
+                    ),
                   ),
                 ),
                 Positioned(
                   top: 16,
                   left: 16,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(12),
@@ -136,11 +158,19 @@ class _ExpertProfileCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                        const Icon(
+                          Icons.star_rounded,
+                          color: Colors.amber,
+                          size: 16,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           expert.rating.toString(),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -149,7 +179,7 @@ class _ExpertProfileCard extends StatelessWidget {
               ],
             ),
           ),
-          
+
           Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -161,7 +191,11 @@ class _ExpertProfileCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         expert.name,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                     Container(
@@ -173,15 +207,22 @@ class _ExpertProfileCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Text('Online', style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Online',
+                      style: TextStyle(
+                        color: Colors.greenAccent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   expert.role.toUpperCase(),
                   style: TextStyle(
-                    color: expert.accentColor, 
-                    fontSize: 11, 
+                    color: expert.accentColor,
+                    fontSize: 11,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.2,
                   ),
@@ -189,7 +230,11 @@ class _ExpertProfileCard extends StatelessWidget {
                 const SizedBox(height: 16),
                 Text(
                   expert.description,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -201,18 +246,46 @@ class _ExpertProfileCard extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Next Available', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Next Available',
+                          style: TextStyle(
+                            color: Colors.white38,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        Text(expert.nextAvailable, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                        Text(
+                          expert.nextAvailable,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                     const Spacer(),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text('Per 30 mins', style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Per 30 mins',
+                          style: TextStyle(
+                            color: Colors.white38,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 4),
-                        Text('₹${expert.price}', style: const TextStyle(color: Color(0xFF3FFFD7), fontSize: 18, fontWeight: FontWeight.w900)),
+                        Text(
+                          '₹${expert.price}',
+                          style: const TextStyle(
+                            color: Color(0xFF3FFFD7),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -221,7 +294,7 @@ class _ExpertProfileCard extends StatelessWidget {
                 _BookingButton(expert: expert),
               ],
             ),
-          )
+          ),
         ],
       ),
     );
@@ -254,7 +327,10 @@ class _BookingButtonState extends State<_BookingButton> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF0D1E2D),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Session Requested', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Session Requested',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         content: Text(
           'Your request for a session with ${widget.expert.name} has been sent. Our team will verify and contact you within 15 minutes.',
           style: const TextStyle(color: Colors.white70),
@@ -262,7 +338,13 @@ class _BookingButtonState extends State<_BookingButton> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('GOT IT', style: TextStyle(color: Color(0xFF3FFFD7), fontWeight: FontWeight.bold)),
+            child: const Text(
+              'GOT IT',
+              style: TextStyle(
+                color: Color(0xFF3FFFD7),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -280,12 +362,25 @@ class _BookingButtonState extends State<_BookingButton> {
           backgroundColor: const Color(0xFF3FFFD7),
           foregroundColor: Colors.black,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 14,
+            letterSpacing: 1,
+          ),
         ),
-        child: _loading 
-          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3, color: Colors.black))
-          : const Text('BOOK INSTANT SESSION'),
+        child: _loading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: Colors.black,
+                ),
+              )
+            : const Text('BOOK INSTANT SESSION'),
       ),
     );
   }
@@ -320,7 +415,8 @@ const List<_Expert> _experts = [
     name: 'Agent Uday',
     role: 'Cyber Intelligence Lead',
     category: 'Security',
-    description: 'Specialist in identifying threat vectors, digital footprint analysis, and proactive defense strategies for high-risk individuals.',
+    description:
+        'Specialist in identifying threat vectors, digital footprint analysis, and proactive defense strategies for high-risk individuals.',
     rating: 4.9,
     price: 1999,
     nextAvailable: 'Today, 4:00 PM',
@@ -331,7 +427,8 @@ const List<_Expert> _experts = [
     name: 'Adv. Megha S.',
     role: 'Cyber Law Consultant',
     category: 'Legal',
-    description: 'Expert in IT Act, digital evidence handling, and legal procedures for financial fraud recovery and data privacy cases.',
+    description:
+        'Expert in IT Act, digital evidence handling, and legal procedures for financial fraud recovery and data privacy cases.',
     rating: 4.8,
     price: 1499,
     nextAvailable: 'Tomorrow, 11:00 AM',
@@ -342,7 +439,8 @@ const List<_Expert> _experts = [
     name: 'Dr. Sarah',
     role: 'Crisis Psychologist',
     category: 'Mental Health',
-    description: 'Providing immediate psychological support for victims of online blackmail, harassment, and severe digital trauma.',
+    description:
+        'Providing immediate psychological support for victims of online blackmail, harassment, and severe digital trauma.',
     rating: 4.9,
     price: 1299,
     nextAvailable: 'Today, 6:30 PM',
@@ -353,7 +451,8 @@ const List<_Expert> _experts = [
     name: 'Dev Rohan',
     role: 'Application Architect',
     category: 'Security',
-    description: 'Expert in secure code review, infrastructure hardening, and recovering hijacked corporate assets and web properties.',
+    description:
+        'Expert in secure code review, infrastructure hardening, and recovering hijacked corporate assets and web properties.',
     rating: 4.7,
     price: 2499,
     nextAvailable: '25th Apr, 10:00 AM',

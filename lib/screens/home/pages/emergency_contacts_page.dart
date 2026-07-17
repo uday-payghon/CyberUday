@@ -6,10 +6,7 @@ class EmergencyContactsPage extends StatelessWidget {
   const EmergencyContactsPage({super.key});
 
   Future<void> _makePhoneCall(String phoneNumber) async {
-    final Uri launchUri = Uri(
-      scheme: 'tel',
-      path: phoneNumber,
-    );
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
     if (await canLaunchUrl(launchUri)) {
       await launchUrl(launchUri);
     } else {
@@ -26,59 +23,65 @@ class EmergencyContactsPage extends StatelessWidget {
       children: [
         const HeroBanner(
           title: 'Emergency Help Lines',
-          subtitle: 'Immediate access to authorities and emergency services. One-tap to call.',
+          subtitle:
+              'Immediate access to authorities and emergency services. One-tap to call.',
         ),
         const SizedBox(height: 32),
         Wrap(
           spacing: 16,
           runSpacing: 16,
-          children: [
-            _EmergencyCard(
-              title: 'Police',
-              number: '100',
-              icon: Icons.local_police_rounded,
-              color: Colors.blueAccent,
-              onTap: () => _makePhoneCall('100'),
-            ),
-            _EmergencyCard(
-              title: 'Ambulance',
-              number: '102',
-              icon: Icons.medical_services_rounded,
-              color: Colors.redAccent,
-              onTap: () => _makePhoneCall('102'),
-            ),
-            _EmergencyCard(
-              title: 'Fire Brigade',
-              number: '101',
-              icon: Icons.fire_truck_rounded,
-              color: Colors.orangeAccent,
-              onTap: () => _makePhoneCall('101'),
-            ),
-            _EmergencyCard(
-              title: 'Cyber Cell',
-              number: '1930',
-              icon: Icons.security_rounded,
-              color: const Color(0xFF3FFFD7),
-              onTap: () => _makePhoneCall('1930'),
-            ),
-            _EmergencyCard(
-              title: 'Women Helpline',
-              number: '1091',
-              icon: Icons.woman_rounded,
-              color: Colors.pinkAccent,
-              onTap: () => _makePhoneCall('1091'),
-            ),
-            _EmergencyCard(
-              title: 'Child Helpline',
-              number: '1098',
-              icon: Icons.child_care_rounded,
-              color: Colors.tealAccent,
-              onTap: () => _makePhoneCall('1098'),
-            ),
-          ].map((card) => SizedBox(
-            width: isWide ? 340 : double.infinity,
-            child: card,
-          )).toList(),
+          children:
+              [
+                    _EmergencyCard(
+                      title: 'Police',
+                      number: '100',
+                      icon: Icons.local_police_rounded,
+                      color: Colors.blueAccent,
+                      onTap: () => _makePhoneCall('100'),
+                    ),
+                    _EmergencyCard(
+                      title: 'Ambulance',
+                      number: '102',
+                      icon: Icons.medical_services_rounded,
+                      color: Colors.redAccent,
+                      onTap: () => _makePhoneCall('102'),
+                    ),
+                    _EmergencyCard(
+                      title: 'Fire Brigade',
+                      number: '101',
+                      icon: Icons.fire_truck_rounded,
+                      color: Colors.orangeAccent,
+                      onTap: () => _makePhoneCall('101'),
+                    ),
+                    _EmergencyCard(
+                      title: 'Cyber Cell',
+                      number: '1930',
+                      icon: Icons.security_rounded,
+                      color: const Color(0xFF3FFFD7),
+                      onTap: () => _makePhoneCall('1930'),
+                    ),
+                    _EmergencyCard(
+                      title: 'Women Helpline',
+                      number: '1091',
+                      icon: Icons.woman_rounded,
+                      color: Colors.pinkAccent,
+                      onTap: () => _makePhoneCall('1091'),
+                    ),
+                    _EmergencyCard(
+                      title: 'Child Helpline',
+                      number: '1098',
+                      icon: Icons.child_care_rounded,
+                      color: Colors.tealAccent,
+                      onTap: () => _makePhoneCall('1098'),
+                    ),
+                  ]
+                  .map(
+                    (card) => SizedBox(
+                      width: isWide ? 340 : double.infinity,
+                      child: card,
+                    ),
+                  )
+                  .toList(),
         ),
         const SizedBox(height: 40),
       ],

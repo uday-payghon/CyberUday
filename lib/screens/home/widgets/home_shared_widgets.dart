@@ -123,7 +123,13 @@ class SectionCard extends StatelessWidget {
 }
 
 class ActionChipWidget extends StatelessWidget {
-  const ActionChipWidget({super.key, required this.label, required this.icon, this.onTap, this.isLoading = false});
+  const ActionChipWidget({
+    super.key,
+    required this.label,
+    required this.icon,
+    this.onTap,
+    this.isLoading = false,
+  });
 
   final String label;
   final IconData icon;
@@ -145,9 +151,16 @@ class ActionChipWidget extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            isLoading 
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3FFFD7)))
-              : Icon(icon, size: 18, color: const Color(0xFF3FFFD7)),
+            isLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Color(0xFF3FFFD7),
+                    ),
+                  )
+                : Icon(icon, size: 18, color: const Color(0xFF3FFFD7)),
             const SizedBox(width: 8),
             Text(label),
           ],
@@ -158,7 +171,12 @@ class ActionChipWidget extends StatelessWidget {
 }
 
 class FieldPlaceholder extends StatelessWidget {
-  const FieldPlaceholder({super.key, required this.label, this.controller, this.maxLines = 2});
+  const FieldPlaceholder({
+    super.key,
+    required this.label,
+    this.controller,
+    this.maxLines = 2,
+  });
 
   final String label;
   final TextEditingController? controller;

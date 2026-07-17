@@ -16,7 +16,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _submitting = false;
 
   // HARDCODED ADMIN CREDENTIALS
-  static const String _adminEmail = "founder@cyberuday.com";
+  static const String _adminEmail = "adminuser@gmail.com";
   static const String _adminPassword = "REMOVED_LEGACY_ADMIN_CREDENTIAL";
 
   @override
@@ -34,15 +34,15 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
     setState(() => _submitting = true);
     await Future<void>.delayed(const Duration(milliseconds: 1000));
-    
+
     if (!mounted) return;
     setState(() => _submitting = false);
 
-    if (_emailController.text.trim() == _adminEmail && 
+    if (_emailController.text.trim() == _adminEmail &&
         _passwordController.text == _adminPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Admin Access Granted.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Admin Access Granted.')));
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
       );
@@ -79,7 +79,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            const Text('Case review dashboard', style: TextStyle(color: Colors.white70)),
+            const Text(
+              'Case review dashboard',
+              style: TextStyle(color: Colors.white70),
+            ),
             const SizedBox(height: 8),
             const Text(
               'Manual premium support routing',

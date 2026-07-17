@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -15,12 +16,22 @@ class _AiChatbotState extends State<AiChatbot> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<Map<String, String>> _messages = [];
-  late final GenerativeModel _model;
-  late final ChatSession _chat;
+  GenerativeModel? _model;
+  ChatSession? _chat;
   bool _isLoading = false;
 
+  static const String _webGeminiApiKey = String.fromEnvironment(
+    'GEMINI_API_KEY',
+  );
+  static const String _mobileGeminiApiKey = String.fromEnvironment(
+    'GEMINI_API_KEY',
+  );
+
+  String get _geminiApiKey => kIsWeb ? _webGeminiApiKey : _mobileGeminiApiKey;
+
+  bool get _assistantAvailable => _geminiApiKey.isNotEmpty;
+
   final FlutterTts _flutterTts = FlutterTts();
-  bool _isSpeaking = false;
 
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isListening = false;
@@ -31,11 +42,12 @@ class _AiChatbotState extends State<AiChatbot> {
     super.initState();
     _initTts();
     _initSpeech();
-    
-    _model = GenerativeModel(
-      model: 'gemini-3-flash-preview',
-      apiKey: 'REMOVED_GEMINI_API_KEY',
-      systemInstruction: Content.system(
+
+    if (_assistantAvailable) {
+      _model = GenerativeModel(
+        model: 'gemini-3-flash-preview',
+        apiKey: _geminiApiKey,
+        systemInstruction: Content.system(
           'You are "Cyber Uday AI Voice Assistant". Your goal is to help victims create a cybercrime incident report through a conversation. '
           'Step 1: Ask the user what happened. '
           'Step 2: Ask for the date and time of the incident. '
@@ -43,18 +55,26 @@ class _AiChatbotState extends State<AiChatbot> {
           'Step 4: Ask for any transaction IDs or links involved. '
           'Keep your responses very short and conversational. '
           'Once you have all details, say exactly: "I have gathered all the information. FINAL REPORT SUMMARY:" followed by a clean summary of everything. '
-          'At the end of every response, if you are still missing info, ask one simple follow-up question.'),
-    );
-    
-    _chat = _model.startChat();
-    
-    // Initial Greeting
-    _addBotMessage('Hello! I am your Cyber Bodyguard. To help you report this incident, tell me exactly what happened?');
+          'At the end of every response, if you are still missing info, ask one simple follow-up question.',
+        ),
+      );
+
+      _chat = _model!.startChat();
+      _addBotMessage(
+        'Hello! I am your Cyber Bodyguard. To help you report this incident, tell me exactly what happened?',
+      );
+    } else {
+      _addBotMessage(
+        kIsWeb
+            ? 'Cyber Voice Interview is paused on this temporary web deploy because no non-Firebase API key was bundled.'
+            : 'Cyber Voice Interview is not configured for this build.',
+      );
+    }
   }
 
   void _initTts() {
-    _flutterTts.setStartHandler(() => setState(() => _isSpeaking = true));
-    _flutterTts.setCompletionHandler(() => setState(() => _isSpeaking = false));
+    _flutterTts.setStartHandler(() {});
+    _flutterTts.setCompletionHandler(() {});
   }
 
   void _initSpeech() async {
@@ -91,7 +111,10 @@ class _AiChatbotState extends State<AiChatbot> {
   }
 
   Future<void> _speak(String text) async {
-    final cleanText = text.replaceAll('*', '').replaceAll('#', '').replaceFirst('FINAL REPORT SUMMARY:', '');
+    final cleanText = text
+        .replaceAll('*', '')
+        .replaceAll('#', '')
+        .replaceFirst('FINAL REPORT SUMMARY:', '');
     await _flutterTts.speak(cleanText);
   }
 
@@ -117,7 +140,9 @@ class _AiChatbotState extends State<AiChatbot> {
   }
 
   Future<void> _generatePdfFromChat(String content) async {
-    final cleanContent = content.replaceFirst('FINAL REPORT SUMMARY:', '').trim();
+    final cleanContent = content
+        .replaceFirst('FINAL REPORT SUMMARY:', '')
+        .trim();
     final reportData = {
       'id': 'VOICE-GEN-${DateTime.now().millisecondsSinceEpoch}',
       'type': 'Voice-Assisted Security Report',
@@ -132,6 +157,13 @@ class _AiChatbotState extends State<AiChatbot> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
+    if (!_assistantAvailable || _chat == null) {
+      _addBotMessage(
+        'This temporary public build keeps non-Firebase API keys out of the app bundle.',
+      );
+      return;
+    }
+
     setState(() {
       _messages.add({'role': 'user', 'text': text});
       _isLoading = true;
@@ -140,9 +172,9 @@ class _AiChatbotState extends State<AiChatbot> {
     _scrollToBottom();
 
     try {
-      final response = await _chat.sendMessage(Content.text(text));
+      final response = await _chat!.sendMessage(Content.text(text));
       final botResponse = response.text ?? 'I could not process that.';
-      
+
       if (mounted) {
         setState(() {
           _messages.add({'role': 'bot', 'text': botResponse});
@@ -153,7 +185,9 @@ class _AiChatbotState extends State<AiChatbot> {
       }
     } catch (e) {
       if (mounted) {
-        _addBotMessage('I encountered a connection error. Can you please repeat that?');
+        _addBotMessage(
+          'I encountered a connection error. Can you please repeat that?',
+        );
         setState(() => _isLoading = false);
       }
     }
@@ -182,7 +216,9 @@ class _AiChatbotState extends State<AiChatbot> {
                 final text = msg['text']!;
 
                 return Column(
-                  crossAxisAlignment: isBot ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+                  crossAxisAlignment: isBot
+                      ? CrossAxisAlignment.start
+                      : CrossAxisAlignment.end,
                   children: [
                     _buildMessageBubble(text, !isBot),
                     if (isBot && text.contains('FINAL REPORT SUMMARY:'))
@@ -206,7 +242,10 @@ class _AiChatbotState extends State<AiChatbot> {
           if (_isLoading)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: LinearProgressIndicator(backgroundColor: Colors.transparent, color: Color(0xFF3FFFD7)),
+              child: LinearProgressIndicator(
+                backgroundColor: Colors.transparent,
+                color: Color(0xFF3FFFD7),
+              ),
             ),
           _buildInputArea(),
         ],
@@ -220,7 +259,9 @@ class _AiChatbotState extends State<AiChatbot> {
       decoration: BoxDecoration(
         color: const Color(0xFF07111A),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+        border: Border(
+          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        ),
       ),
       child: Row(
         children: [
@@ -229,16 +270,29 @@ class _AiChatbotState extends State<AiChatbot> {
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Cyber Voice Interview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-              Text('Answering will generate your report', style: TextStyle(fontSize: 11, color: Colors.white38)),
+              Text(
+                'Cyber Voice Interview',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              Text(
+                'Answering will generate your report',
+                style: TextStyle(fontSize: 11, color: Colors.white38),
+              ),
             ],
           ),
           const Spacer(),
-          IconButton(onPressed: () {
-            _flutterTts.stop();
-            _speech.stop();
-            Navigator.pop(context);
-          }, icon: const Icon(Icons.close, color: Colors.white54)),
+          IconButton(
+            onPressed: () {
+              _flutterTts.stop();
+              _speech.stop();
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.close, color: Colors.white54),
+          ),
         ],
       ),
     );
@@ -250,30 +304,51 @@ class _AiChatbotState extends State<AiChatbot> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(16),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
           color: isUser ? const Color(0xFF1E4A67) : const Color(0xFF10273A),
           borderRadius: BorderRadius.circular(20).copyWith(
             bottomRight: isUser ? Radius.zero : null,
             bottomLeft: isUser ? null : Radius.zero,
           ),
-          border: isUser ? null : Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: isUser
+              ? null
+              : Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
-        child: Text(text, style: const TextStyle(fontSize: 14, color: Colors.white, height: 1.4)),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.white,
+            height: 1.4,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildInputArea() {
     return Padding(
-      padding: EdgeInsets.fromLTRB(20, 8, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        8,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
       child: Row(
         children: [
           GestureDetector(
             onTap: _listen,
             child: CircleAvatar(
-              backgroundColor: _isListening ? Colors.red : const Color(0xFF3FFFD7),
-              child: Icon(_isListening ? Icons.mic : Icons.mic_none, color: Colors.black),
+              backgroundColor: _isListening
+                  ? Colors.red
+                  : const Color(0xFF3FFFD7),
+              child: Icon(
+                _isListening ? Icons.mic : Icons.mic_none,
+                color: Colors.black,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -286,8 +361,14 @@ class _AiChatbotState extends State<AiChatbot> {
                 hintStyle: const TextStyle(color: Colors.white24),
                 filled: true,
                 fillColor: const Color(0xFF10273A),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide.none,
+                ),
               ),
               onSubmitted: (_) => _sendMessage(),
             ),
@@ -296,7 +377,10 @@ class _AiChatbotState extends State<AiChatbot> {
           IconButton.filled(
             onPressed: _sendMessage,
             icon: const Icon(Icons.send_rounded),
-            style: IconButton.styleFrom(backgroundColor: const Color(0xFF3FFFD7), foregroundColor: Colors.black),
+            style: IconButton.styleFrom(
+              backgroundColor: const Color(0xFF3FFFD7),
+              foregroundColor: Colors.black,
+            ),
           ),
         ],
       ),

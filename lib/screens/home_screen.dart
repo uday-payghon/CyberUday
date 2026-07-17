@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
@@ -131,7 +130,11 @@ class _HomeScreenState extends State<HomeScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFF040B11), Color(0xFF07111A), Color(0xFF0B2030)],
+                colors: [
+                  Color(0xFF040B11),
+                  Color(0xFF07111A),
+                  Color(0xFF0B2030),
+                ],
               ),
             ),
             child: SafeArea(
@@ -162,7 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         );
-      }
+      },
     );
   }
 
@@ -382,7 +385,10 @@ class _BrandBlock extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        const Text('CYBER UDAY', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const Text(
+          'CYBER UDAY',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 4),
         const Text(
           'Digital war needs a digital bodyguard.',

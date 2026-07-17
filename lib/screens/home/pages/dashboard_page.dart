@@ -67,53 +67,6 @@ class DashboardPage extends StatelessWidget {
     }
   }
 
-  Future<void> _handleBankConnection(BuildContext context) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Connecting bank permission...')),
-    );
-
-    try {
-      await FirebaseService.instance.connectBankPermission({
-        'platform': Theme.of(context).platform.toString(),
-        'context': 'Dashboard Connect Bank',
-        'permissionSource': 'Hero Connect Bank Button',
-      });
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF0B1823),
-            title: const Row(
-              children: [
-                Icon(Icons.account_balance_rounded, color: Color(0xFF3FFFD7)),
-                SizedBox(width: 10),
-                Text('Bank Permission Connected'),
-              ],
-            ),
-            content: const Text(
-              'Your bank permission request has been saved securely. The Cyber Uday team can now track this connection for emergency support.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Bank connection failed: $e')));
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final mobile = MediaQuery.sizeOf(context).width < 760;
@@ -130,7 +83,8 @@ class DashboardPage extends StatelessWidget {
               primaryLabel: LocalizationService.instance.translate(
                 'connect_bank',
               ),
-              onPrimaryTap: () => _handleBankConnection(context),
+              onPrimaryTap: () =>
+                  _handleEmergencyAction(context, 'Bank Connection'),
               secondaryLabel: 'Admin',
               onSecondaryTap: onAdminTap,
             ),
@@ -178,8 +132,7 @@ class DashboardPage extends StatelessWidget {
                   stream: FirebaseService.instance.getThreatsCount(),
                   builder: (context, threatsSnapshot) {
                     return StreamBuilder<int>(
-                      stream: FirebaseService.instance
-                          .getUserConnectedBanksCount(),
+                      stream: FirebaseService.instance.getConnectedBanksCount(),
                       builder: (context, banksSnapshot) {
                         return GridView.count(
                           crossAxisCount: mobile ? 2 : 4,
@@ -484,7 +437,7 @@ class EmergencyBankPanel extends StatelessWidget {
           ActionChipWidget(
             label: LocalizationService.instance.translate('connect_bank'),
             icon: Icons.link_rounded,
-            onTap: () => _connectBank(context),
+            onTap: () => _handleAction(context, 'Bank Permission'),
           ),
         ],
       ),
@@ -498,34 +451,5 @@ class EmergencyBankPanel extends StatelessWidget {
     await FirebaseService.instance.logEmergencyAction(action, {
       'source': 'Emergency Panel',
     });
-  }
-
-  void _connectBank(BuildContext context) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Connecting bank permission...')),
-    );
-
-    try {
-      await FirebaseService.instance.connectBankPermission({
-        'source': 'Emergency Panel',
-        'permissionSource': 'Emergency Bank Panel',
-      });
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bank permission connected successfully.'),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Bank connection failed: $e')));
-      }
-    }
   }
 }
