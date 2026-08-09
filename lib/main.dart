@@ -33,7 +33,7 @@ class CyberUApp extends StatelessWidget {
               (locale) => locale.languageCode == localeCode,
             );
             return MaterialApp(
-              title: 'Cyber Uday',
+              title: 'Cyber Uday – A Digital Bodyguard',
               debugShowCheckedModeBanner: false,
               theme: AppTheme.lightTheme,
               darkTheme: AppTheme.darkTheme,
