@@ -1,11 +1,11 @@
 {
     "name": "Cyber Uday",
-    "short_name": "Cyber Uday",
-    "start_url": ".",
+    "short_name": "CyberUday",
+    "start_url": "./",
     "display": "standalone",
-    "background_color": "#07111A",
-    "theme_color": "#3FFFD7",
-    "description": "Cyber Uday cybercrime reporting and threat assistance.",
+    "background_color": "#FFFFFF",
+    "theme_color": "#000000",
+    "description": "A Digital Bodyguard",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

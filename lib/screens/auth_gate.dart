@@ -1,30 +1,46 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../core/cyber_design_system.dart';
 import '../services/auth_service.dart';
+import '../services/onboarding_preference_service.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
+import 'onboarding_screen.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: AuthService.instance.authStateChanges,
-      builder: (context, snapshot) {
-        // Show a themed loader while checking auth state
-        if (snapshot.connectionState == ConnectionState.waiting) {
+    return FutureBuilder<bool>(
+      future: OnboardingPreferenceService.instance.isComplete(),
+      builder: (context, onboardingSnapshot) {
+        if (onboardingSnapshot.connectionState != ConnectionState.done) {
           return const _AuthGateLoader();
         }
 
-        // If user is logged in, show HomeScreen
-        if (snapshot.hasData && snapshot.data != null) {
-          return const HomeScreen();
+        if (onboardingSnapshot.data != true) {
+          return const OnboardingScreen();
         }
 
-        // Otherwise, show LoginScreen
-        return const LoginScreen();
+        return StreamBuilder<User?>(
+          stream: AuthService.instance.authStateChanges,
+          builder: (context, snapshot) {
+            // Show a themed loader while checking auth state.
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const _AuthGateLoader();
+            }
+
+            // If user is logged in, show HomeScreen.
+            if (snapshot.hasData && snapshot.data != null) {
+              return const HomeScreen();
+            }
+
+            // Otherwise, show LoginScreen.
+            return const LoginScreen();
+          },
+        );
       },
     );
   }
@@ -35,38 +51,45 @@ class _AuthGateLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = CyberTheme.forBrightness(
+      Theme.of(context).brightness,
+    );
     return Scaffold(
-      backgroundColor: const Color(0xFF040B11),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF040B11), Color(0xFF07111A)],
-          ),
-        ),
-        child: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3FFFD7)),
-                strokeWidth: 3,
-              ),
-              SizedBox(height: 24),
-              Text(
-                'VERIFYING IDENTITY...',
-                style: TextStyle(
-                  color: Color(0xFF3FFFD7),
-                  letterSpacing: 2,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
+        color: theme.scaffoldBackgroundColor,
+        child: const Center(child: _AuthGateLoaderContent()),
       ),
+    );
+  }
+}
+
+class _AuthGateLoaderContent extends StatelessWidget {
+  const _AuthGateLoaderContent();
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(
+            theme.colorScheme.secondary,
+          ),
+          strokeWidth: 3,
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'VERIFYING IDENTITY...',
+          style: TextStyle(
+            color: theme.colorScheme.secondary,
+            letterSpacing: 2,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     );
   }
 }

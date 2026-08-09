@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 
+import '../core/cyber_design_system.dart';
+import '../core/localization/app_localizations_helper.dart';
+import '../core/localization/auth_error_localizer.dart';
+import '../l10n/app_localizations.dart';
 import '../services/auth_service.dart';
-import '../widgets/cyber_layout.dart';
+import '../services/localization_service.dart';
 import 'auth_gate.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -29,11 +32,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
+  AppLocalizations get _localizations =>
+      appLocalizationsFor(LocalizationService.instance.currentLocale.value);
+
   Future<void> _signup() async {
-    final form = _formKey.currentState;
-    if (form == null || !form.validate()) {
-      return;
-    }
+    final FormState? form = _formKey.currentState;
+    if (form == null || !form.validate()) return;
 
     setState(() => _loading = true);
     try {
@@ -41,20 +45,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      if (!mounted) {
-        return;
-      }
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const AuthGate()),
-        (route) => false,
-      );
+      await _goToAuthGate();
     } catch (error) {
-      _showMessage(error.toString());
+      _showMessage(localizedAuthError(_localizations, error));
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _continueWithGoogle() async {
+    setState(() => _loading = true);
+    try {
+      await AuthService.instance.signInWithGoogle();
+      await _goToAuthGate();
+    } catch (error) {
+      _showMessage(localizedAuthError(_localizations, error));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _goToAuthGate() async {
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const AuthGate()),
+      (route) => false,
+    );
   }
 
   void _showMessage(String message) {
@@ -65,138 +81,253 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bool androidPhone =
-        !kIsWeb &&
-        defaultTargetPlatform == TargetPlatform.android &&
-        MediaQuery.sizeOf(context).width < 720;
+    return ValueListenableBuilder<String>(
+      valueListenable: LocalizationService.instance.currentLocale,
+      builder: (BuildContext context, String localeCode, Widget? child) {
+        final AppLocalizations localizations = appLocalizationsFor(localeCode);
+        final ThemeData authTheme = CyberTheme.forBrightness(
+          Theme.of(context).brightness,
+        );
+        return Theme(
+          data: authTheme,
+          child: Scaffold(
+            backgroundColor: authTheme.scaffoldBackgroundColor,
+            body: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final bool wide = constraints.maxWidth >= 860;
+                  final Widget form = _SignUpForm(
+                    formKey: _formKey,
+                    emailController: _emailController,
+                    passwordController: _passwordController,
+                    confirmPasswordController: _confirmPasswordController,
+                    localizations: localizations,
+                    loading: _loading,
+                    onSignup: _signup,
+                    onGoogleSignup: _continueWithGoogle,
+                  );
 
-    return CyberLayout(
-      heroTag: 'ACCOUNT PROVISIONING',
-      title: 'Create a hardened operator profile.',
-      subtitle:
-          'Provision a new account, enforce baseline password checks, and enter the secured dashboard immediately after registration.',
-      sideNote: _SignUpNotes(androidPhone: androidPhone),
-      panel: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Create account', style: theme.textTheme.headlineMedium),
-          const SizedBox(height: 8),
-          Text(
-            'Register a new identity for Cyber Uday.',
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 24),
-          Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email address',
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
-                  validator: (value) {
-                    final text = value?.trim() ?? '';
-                    if (text.isEmpty || !text.contains('@')) {
-                      return 'Enter a valid email address.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: Icon(Icons.key_outlined),
-                  ),
-                  validator: (value) {
-                    if ((value ?? '').length < 6) {
-                      return 'Password must be at least 6 characters.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: _confirmPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Confirm password',
-                    prefixIcon: Icon(Icons.verified_user_outlined),
-                  ),
-                  validator: (value) {
-                    if (value != _passwordController.text) {
-                      return 'Passwords do not match.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _loading ? null : _signup,
-                  child: _loading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2.4),
-                        )
-                      : const Text('Provision Account'),
-                ),
-              ],
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: wide
+                                ? CyberSpacing.page
+                                : CyberSpacing.md,
+                            vertical: CyberSpacing.xl,
+                          ),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1080),
+                            child: wide
+                                ? Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Expanded(
+                                        child: _SignUpBrand(
+                                          localizations: localizations,
+                                          alignStart: true,
+                                        ),
+                                      ),
+                                      CyberSpacing.horizontal(
+                                        CyberSpacing.page,
+                                      ),
+                                      SizedBox(width: 420, child: form),
+                                    ],
+                                  )
+                                : Column(
+                                    children: [
+                                      _SignUpBrand(
+                                        localizations: localizations,
+                                      ),
+                                      CyberSpacing.vertical(CyberSpacing.xxl),
+                                      form,
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
-          const SizedBox(height: 14),
-          TextButton(
-            onPressed: _loading ? null : () => Navigator.of(context).pop(),
-            child: const Text('Back to sign in'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
-class _SignUpNotes extends StatelessWidget {
-  const _SignUpNotes({required this.androidPhone});
+class _SignUpBrand extends StatelessWidget {
+  const _SignUpBrand({required this.localizations, this.alignStart = false});
 
-  final bool androidPhone;
+  final AppLocalizations localizations;
+  final bool alignStart;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: EdgeInsets.all(androidPhone ? 16 : 18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFF1E4A67)),
-        color: const Color(0xFF0B1823).withValues(alpha: 0.82),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            androidPhone ? 'Before you continue' : 'Operator checklist',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: const Color(0xFF3FFFD7),
+    final ThemeData theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: alignStart
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.center,
+      children: [
+        Semantics(
+          image: true,
+          label: localizations.authBrandLine,
+          child: Image.asset(
+            'assets/cyber_uday_mark.png',
+            width: alignStart ? 112 : 88,
+            height: alignStart ? 112 : 88,
+            fit: BoxFit.contain,
+          ),
+        ),
+        CyberSpacing.vertical(CyberSpacing.lg),
+        Text(
+          'CYBER UDAY',
+          style: theme.textTheme.headlineLarge,
+          textAlign: alignStart ? TextAlign.left : TextAlign.center,
+        ),
+        CyberSpacing.vertical(CyberSpacing.xs),
+        Text(
+          localizations.authBrandLine,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: CyberColors.brandAccent,
+          ),
+          textAlign: alignStart ? TextAlign.left : TextAlign.center,
+        ),
+        CyberSpacing.vertical(CyberSpacing.md),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Text(
+            localizations.authSignUpIntro,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.68),
             ),
+            textAlign: alignStart ? TextAlign.left : TextAlign.center,
           ),
-          const SizedBox(height: 14),
-          Text(
-            'Use a real email. Google auth and email auth both point to the same Firebase project configuration.',
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'After signup, auth state routing takes you straight into the app without requiring another manual login.',
-            style: theme.textTheme.bodyMedium,
-          ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SignUpForm extends StatelessWidget {
+  const _SignUpForm({
+    required this.formKey,
+    required this.emailController,
+    required this.passwordController,
+    required this.confirmPasswordController,
+    required this.localizations,
+    required this.loading,
+    required this.onSignup,
+    required this.onGoogleSignup,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final TextEditingController confirmPasswordController;
+  final AppLocalizations localizations;
+  final bool loading;
+  final VoidCallback onSignup;
+  final VoidCallback onGoogleSignup;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return CyberCard(
+      variant: CyberCardVariant.elevated,
+      padding: const EdgeInsets.all(CyberSpacing.xl),
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              localizations.authSignUpTitle,
+              style: theme.textTheme.headlineMedium,
+            ),
+            CyberSpacing.vertical(CyberSpacing.xs),
+            Text(
+              localizations.authSignUpIntro,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.68),
+              ),
+            ),
+            CyberSpacing.vertical(CyberSpacing.xl),
+            TextFormField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.username],
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(
+                labelText: localizations.authEmailLabel,
+                prefixIcon: const Icon(Icons.alternate_email_rounded),
+              ),
+              validator: (value) {
+                final String text = value?.trim() ?? '';
+                return text.isEmpty || !text.contains('@')
+                    ? localizations.authEmailValidation
+                    : null;
+              },
+            ),
+            CyberSpacing.vertical(CyberSpacing.md),
+            TextFormField(
+              controller: passwordController,
+              obscureText: true,
+              autofillHints: const [AutofillHints.newPassword],
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(
+                labelText: localizations.authPasswordLabel,
+                prefixIcon: const Icon(Icons.lock_outline_rounded),
+              ),
+              validator: (value) => (value ?? '').length < 6
+                  ? localizations.authPasswordLengthValidation
+                  : null,
+            ),
+            CyberSpacing.vertical(CyberSpacing.md),
+            TextFormField(
+              controller: confirmPasswordController,
+              obscureText: true,
+              autofillHints: const [AutofillHints.newPassword],
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                labelText: localizations.authConfirmPassword,
+                prefixIcon: const Icon(Icons.verified_user_outlined),
+              ),
+              validator: (value) => value != passwordController.text
+                  ? localizations.authPasswordMismatch
+                  : null,
+              onFieldSubmitted: (_) => loading ? null : onSignup(),
+            ),
+            CyberSpacing.vertical(CyberSpacing.lg),
+            CyberButton(
+              label: localizations.authCreateAccountAction,
+              onPressed: loading ? null : onSignup,
+              isLoading: loading,
+              expand: true,
+              icon: const Icon(Icons.arrow_forward_rounded),
+              semanticLabel: localizations.authCreateAccountAction,
+            ),
+            CyberSpacing.vertical(CyberSpacing.sm),
+            OutlinedButton.icon(
+              onPressed: loading ? null : onGoogleSignup,
+              icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
+              label: Text(localizations.authContinueGoogle),
+            ),
+            const Divider(height: CyberSpacing.lg),
+            TextButton(
+              onPressed: loading ? null : () => Navigator.of(context).pop(),
+              child: Text(localizations.authBackToSignIn),
+            ),
+          ],
+        ),
       ),
     );
   }

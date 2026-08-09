@@ -47,12 +47,19 @@ class HackerNewsService {
   static const _baseUrl = 'https://hacker-news.firebaseio.com/v0';
 
   Future<List<HackerNewsStory>> getTopStories({int limit = 6}) async {
-    final response = await http.get(Uri.parse('$_baseUrl/topstories.json'));
+    final response = await http
+        .get(Uri.parse('$_baseUrl/topstories.json'))
+        .timeout(const Duration(seconds: 12));
     if (response.statusCode != 200) {
       throw Exception('Unable to load Hacker News stories.');
     }
 
-    final ids = (jsonDecode(response.body) as List<dynamic>).cast<int>();
+    final decoded = jsonDecode(response.body);
+    if (decoded is! List) {
+      throw Exception('Unexpected Hacker News response.');
+    }
+
+    final ids = decoded.whereType<int>();
     final storyResponses = await Future.wait(
       ids.take(limit * 2).map(_getStory),
     );
@@ -61,10 +68,15 @@ class HackerNewsService {
   }
 
   Future<HackerNewsStory?> _getStory(int id) async {
-    final response = await http.get(Uri.parse('$_baseUrl/item/$id.json'));
+    final response = await http
+        .get(Uri.parse('$_baseUrl/item/$id.json'))
+        .timeout(const Duration(seconds: 12));
     if (response.statusCode != 200 || response.body == 'null') return null;
 
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) return null;
+
+    final data = decoded;
     if (data['type'] != 'story' ||
         data['deleted'] == true ||
         data['dead'] == true) {

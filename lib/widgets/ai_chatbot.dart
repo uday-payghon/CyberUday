@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../services/pdf_service.dart';
+import '../services/localization_service.dart';
 
 class AiChatbot extends StatefulWidget {
   const AiChatbot({super.key});
@@ -16,22 +16,12 @@ class _AiChatbotState extends State<AiChatbot> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<Map<String, String>> _messages = [];
-  GenerativeModel? _model;
-  ChatSession? _chat;
+  late final GenerativeModel _model;
+  late final ChatSession _chat;
   bool _isLoading = false;
 
-  static const String _webGeminiApiKey = String.fromEnvironment(
-    'GEMINI_API_KEY',
-  );
-  static const String _mobileGeminiApiKey = String.fromEnvironment(
-    'GEMINI_API_KEY',
-  );
-
-  String get _geminiApiKey => kIsWeb ? _webGeminiApiKey : _mobileGeminiApiKey;
-
-  bool get _assistantAvailable => _geminiApiKey.isNotEmpty;
-
   final FlutterTts _flutterTts = FlutterTts();
+  bool _isSpeaking = false;
 
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isListening = false;
@@ -43,38 +33,38 @@ class _AiChatbotState extends State<AiChatbot> {
     _initTts();
     _initSpeech();
 
-    if (_assistantAvailable) {
-      _model = GenerativeModel(
-        model: 'gemini-3-flash-preview',
-        apiKey: _geminiApiKey,
-        systemInstruction: Content.system(
-          'You are "Cyber Uday AI Voice Assistant". Your goal is to help victims create a cybercrime incident report through a conversation. '
-          'Step 1: Ask the user what happened. '
-          'Step 2: Ask for the date and time of the incident. '
-          'Step 3: Ask for any suspect details or platform used (e.g. WhatsApp, Instagram, Bank name). '
-          'Step 4: Ask for any transaction IDs or links involved. '
-          'Keep your responses very short and conversational. '
-          'Once you have all details, say exactly: "I have gathered all the information. FINAL REPORT SUMMARY:" followed by a clean summary of everything. '
-          'At the end of every response, if you are still missing info, ask one simple follow-up question.',
-        ),
-      );
+    _model = GenerativeModel(
+      model: 'gemini-3-flash-preview',
+      apiKey: const String.fromEnvironment('GEMINI_API_KEY'),
+      systemInstruction: Content.system(
+        'You are "Cyber Uday AI Voice Assistant". Your goal is to help victims create a cybercrime incident report through a conversation. '
+        'Step 1: Ask the user what happened. '
+        'Step 2: Ask for the date and time of the incident. '
+        'Step 3: Ask for any suspect details or platform used (e.g. WhatsApp, Instagram, Bank name). '
+        'Step 4: Ask for any transaction IDs or links involved. '
+        'Keep your responses very short and conversational. '
+        'Once you have all details, say exactly: "I have gathered all the information. FINAL REPORT SUMMARY:" followed by a clean summary of everything. '
+        'At the end of every response, if you are still missing info, ask one simple follow-up question.',
+      ),
+    );
 
-      _chat = _model!.startChat();
-      _addBotMessage(
-        'Hello! I am your Cyber Bodyguard. To help you report this incident, tell me exactly what happened?',
-      );
-    } else {
-      _addBotMessage(
-        kIsWeb
-            ? 'Cyber Voice Interview is paused on this temporary web deploy because no non-Firebase API key was bundled.'
-            : 'Cyber Voice Interview is not configured for this build.',
-      );
-    }
+    _chat = _model.startChat();
+
+    _addBotMessage(
+      LocalizationService.instance.translate('assistant_initial_greeting'),
+    );
   }
 
   void _initTts() {
-    _flutterTts.setStartHandler(() {});
-    _flutterTts.setCompletionHandler(() {});
+    _flutterTts.setStartHandler(() {
+      if (mounted) setState(() => _isSpeaking = true);
+    });
+    _flutterTts.setCompletionHandler(() {
+      if (mounted) setState(() => _isSpeaking = false);
+    });
+    _flutterTts.setCancelHandler(() {
+      if (mounted) setState(() => _isSpeaking = false);
+    });
   }
 
   void _initSpeech() async {
@@ -157,13 +147,6 @@ class _AiChatbotState extends State<AiChatbot> {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    if (!_assistantAvailable || _chat == null) {
-      _addBotMessage(
-        'This temporary public build keeps non-Firebase API keys out of the app bundle.',
-      );
-      return;
-    }
-
     setState(() {
       _messages.add({'role': 'user', 'text': text});
       _isLoading = true;
@@ -172,8 +155,12 @@ class _AiChatbotState extends State<AiChatbot> {
     _scrollToBottom();
 
     try {
-      final response = await _chat!.sendMessage(Content.text(text));
-      final botResponse = response.text ?? 'I could not process that.';
+      final response = await _chat
+          .sendMessage(Content.text(text))
+          .timeout(const Duration(seconds: 30));
+      final botResponse =
+          response.text ??
+          LocalizationService.instance.translate('assistant_unavailable');
 
       if (mounted) {
         setState(() {
@@ -186,7 +173,7 @@ class _AiChatbotState extends State<AiChatbot> {
     } catch (e) {
       if (mounted) {
         _addBotMessage(
-          'I encountered a connection error. Can you please repeat that?',
+          LocalizationService.instance.translate('assistant_connection_error'),
         );
         setState(() => _isLoading = false);
       }
@@ -227,7 +214,11 @@ class _AiChatbotState extends State<AiChatbot> {
                         child: ElevatedButton.icon(
                           onPressed: () => _generatePdfFromChat(text),
                           icon: const Icon(Icons.picture_as_pdf),
-                          label: const Text('Download Generated Report'),
+                          label: Text(
+                            LocalizationService.instance.translate(
+                              'assistant_download_report',
+                            ),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF3FFFD7),
                             foregroundColor: Colors.black,
@@ -265,13 +256,17 @@ class _AiChatbotState extends State<AiChatbot> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.mic, color: Color(0xFF3FFFD7), size: 24),
+          Icon(
+            _isSpeaking ? Icons.volume_up_rounded : Icons.mic,
+            color: const Color(0xFF3FFFD7),
+            size: 24,
+          ),
           const SizedBox(width: 16),
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Cyber Voice Interview',
+                LocalizationService.instance.translate('assistant_voice_title'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -279,7 +274,9 @@ class _AiChatbotState extends State<AiChatbot> {
                 ),
               ),
               Text(
-                'Answering will generate your report',
+                LocalizationService.instance.translate(
+                  'assistant_voice_subtitle',
+                ),
                 style: TextStyle(fontSize: 11, color: Colors.white38),
               ),
             ],
@@ -357,7 +354,13 @@ class _AiChatbotState extends State<AiChatbot> {
               controller: _controller,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: _isListening ? 'Listening...' : 'Type or use mic...',
+                hintText: _isListening
+                    ? LocalizationService.instance.translate(
+                        'assistant_listening',
+                      )
+                    : LocalizationService.instance.translate(
+                        'assistant_type_or_mic',
+                      ),
                 hintStyle: const TextStyle(color: Colors.white24),
                 filled: true,
                 fillColor: const Color(0xFF10273A),

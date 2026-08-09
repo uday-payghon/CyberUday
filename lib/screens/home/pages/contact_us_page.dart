@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/home_shared_widgets.dart';
+import '../../../services/localization_service.dart';
 
 class ContactUsPage extends StatelessWidget {
   const ContactUsPage({super.key});
@@ -7,55 +8,88 @@ class ContactUsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      children: const [
+      children: [
         HeroBanner(
-          title:
-              'Connect with the Cyber Uday team, collaborators, and support lines.',
-          subtitle:
-              'Use this page for help calls, team assistance, collaboration, investment, or company tie-ups.',
+          title: LocalizationService.instance.translate('contact_page_title'),
+          subtitle: LocalizationService.instance.translate(
+            'contact_page_subtitle',
+          ),
         ),
-        SizedBox(height: 18),
+        const SizedBox(height: 18),
         SectionCard(
-          title: 'Contact options',
-          subtitle:
-              'Speak to the team, start collaboration, or ask for direct assistance depending on your problem.',
+          title: LocalizationService.instance.translate(
+            'contact_options_title',
+          ),
+          subtitle: LocalizationService.instance.translate(
+            'contact_options_subtitle',
+          ),
           child: Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [
-              ActionChipWidget(label: 'Call Our Team', icon: Icons.call_rounded),
               ActionChipWidget(
-                label: 'Collab With Us',
+                label: LocalizationService.instance.translate(
+                  'contact_call_team',
+                ),
+                icon: Icons.call_rounded,
+              ),
+              ActionChipWidget(
+                label: LocalizationService.instance.translate(
+                  'contact_collaborate',
+                ),
                 icon: Icons.handshake_rounded,
               ),
               ActionChipWidget(
-                label: 'Get Investment',
+                label: LocalizationService.instance.translate(
+                  'contact_investment',
+                ),
                 icon: Icons.trending_up_rounded,
               ),
-              ActionChipWidget(label: 'Help Me', icon: Icons.support_agent_rounded),
               ActionChipWidget(
-                label: 'Company Tie Up',
+                label: LocalizationService.instance.translate('contact_help'),
+                icon: Icons.support_agent_rounded,
+              ),
+              ActionChipWidget(
+                label: LocalizationService.instance.translate(
+                  'contact_company',
+                ),
                 icon: Icons.apartment_rounded,
               ),
             ],
           ),
         ),
-        SizedBox(height: 14),
+        const SizedBox(height: 14),
         SectionCard(
-          title: 'Helpline 24/7',
-          subtitle:
-              'Future integrations can route to ambulance, cyber cell, police station, fire vehicle, or the Cyber Uday team based on emergency context.',
+          title: LocalizationService.instance.translate(
+            'contact_helpline_title',
+          ),
+          subtitle: LocalizationService.instance.translate(
+            'contact_helpline_subtitle',
+          ),
           child: Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [
-              ActionChipWidget(label: 'Ambulance', icon: Icons.emergency),
-              ActionChipWidget(label: 'Cyber Cell', icon: Icons.local_police),
               ActionChipWidget(
-                label: 'Fire Vehicle',
+                label: LocalizationService.instance.translate(
+                  'emergency_ambulance',
+                ),
+                icon: Icons.emergency,
+              ),
+              ActionChipWidget(
+                label: LocalizationService.instance.translate(
+                  'emergency_cyber_cell',
+                ),
+                icon: Icons.local_police,
+              ),
+              ActionChipWidget(
+                label: LocalizationService.instance.translate('contact_fire'),
                 icon: Icons.local_fire_department,
               ),
-              ActionChipWidget(label: 'CYBER UDAY Team', icon: Icons.support_agent),
+              ActionChipWidget(
+                label: LocalizationService.instance.translate('contact_team'),
+                icon: Icons.support_agent,
+              ),
             ],
           ),
         ),

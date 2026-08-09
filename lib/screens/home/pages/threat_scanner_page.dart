@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/home_shared_widgets.dart';
 import '../../../services/firebase_service.dart';
+import '../../../services/localization_service.dart';
 
 class ThreatScannerPage extends StatefulWidget {
   const ThreatScannerPage({super.key});
@@ -16,9 +17,15 @@ class _ThreatScannerPageState extends State<ThreatScannerPage> {
   bool _isSubmitting = false;
 
   Future<void> _submitThreat() async {
-    if (_urlController.text.isEmpty && _appController.text.isEmpty && _noteController.text.isEmpty) {
+    if (_urlController.text.isEmpty &&
+        _appController.text.isEmpty &&
+        _noteController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill at least one field.')),
+        SnackBar(
+          content: Text(
+            LocalizationService.instance.translate('scanner_fill_one'),
+          ),
+        ),
       );
       return;
     }
@@ -36,7 +43,11 @@ class _ThreatScannerPageState extends State<ThreatScannerPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Threat submitted to virtual team for analysis!')),
+          SnackBar(
+            content: Text(
+              LocalizationService.instance.translate('scanner_submitted'),
+            ),
+          ),
         );
         _urlController.clear();
         _appController.clear();
@@ -45,7 +56,11 @@ class _ThreatScannerPageState extends State<ThreatScannerPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text(
+              LocalizationService.instance.translate('dashboard_action_failed'),
+            ),
+          ),
         );
       }
     } finally {
@@ -57,35 +72,64 @@ class _ThreatScannerPageState extends State<ThreatScannerPage> {
   Widget build(BuildContext context) {
     return ListView(
       children: [
-        const HeroBanner(
-          title: 'Threat scanner for suspicious links, apps, and screenshots.',
-          subtitle:
-              'Users can submit a website, APK/app link, or image evidence. Your virtual team can analyze and respond.',
+        HeroBanner(
+          title: LocalizationService.instance.translate('scanner_page_title'),
+          subtitle: LocalizationService.instance.translate(
+            'scanner_page_subtitle',
+          ),
         ),
         const SizedBox(height: 18),
         SectionCard(
-          title: 'Submit a suspicious asset',
-          subtitle:
-              'Paste a phishing URL, app package link, or upload screenshots so the virtual team can inspect patterns and risk.',
+          title: LocalizationService.instance.translate('scanner_submit_title'),
+          subtitle: LocalizationService.instance.translate(
+            'scanner_submit_subtitle',
+          ),
           child: Column(
             children: [
-              FieldPlaceholder(label: 'Website or phishing link', controller: _urlController),
+              FieldPlaceholder(
+                label: LocalizationService.instance.translate(
+                  'scanner_link_label',
+                ),
+                controller: _urlController,
+              ),
               const SizedBox(height: 12),
-              FieldPlaceholder(label: 'App name or APK source link', controller: _appController),
+              FieldPlaceholder(
+                label: LocalizationService.instance.translate(
+                  'scanner_app_label',
+                ),
+                controller: _appController,
+              ),
               const SizedBox(height: 12),
-              FieldPlaceholder(label: 'Image or evidence note', controller: _noteController),
+              FieldPlaceholder(
+                label: LocalizationService.instance.translate(
+                  'scanner_note_label',
+                ),
+                controller: _noteController,
+              ),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 children: [
                   ActionChipWidget(
-                    label: 'Upload Image',
+                    label: LocalizationService.instance.translate(
+                      'scanner_upload',
+                    ),
                     icon: Icons.image_outlined,
-                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image picker opening...'))),
+                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          LocalizationService.instance.translate(
+                            'scanner_picker_opening',
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                   ActionChipWidget(
-                    label: 'Submit to Virtual Team',
+                    label: LocalizationService.instance.translate(
+                      'scanner_submit',
+                    ),
                     icon: Icons.verified_user_outlined,
                     isLoading: _isSubmitting,
                     onTap: _submitThreat,

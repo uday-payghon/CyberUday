@@ -1,5 +1,5 @@
 name: cyberuday
-description: "A new Flutter project."
+description: "Cyber Uday citizen cyber safety and incident response app."
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -10,6 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   cupertino_icons: ^1.0.8
   firebase_core: ^3.6.0
@@ -19,13 +21,14 @@ dependencies:
   pdf: ^3.10.8
   printing: ^5.11.1
   path_provider: ^2.1.1
-  intl: ^0.19.0
-  http: ^1.2.2
-  cached_network_image: ^3.4.1
+  intl: ^0.20.2
   url_launcher: ^6.3.1
+  font_awesome_flutter: ^11.0.0
   google_generative_ai: ^0.4.5
   flutter_tts: ^4.2.2
   speech_to_text: ^7.0.0
+  http: ^1.6.0
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:
@@ -34,3 +37,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
+  assets:
+    - assets/cyber_uday_mark.png

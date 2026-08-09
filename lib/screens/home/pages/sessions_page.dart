@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/home_shared_widgets.dart';
+import '../../../services/localization_service.dart';
 
 class SessionsPage extends StatefulWidget {
   const SessionsPage({super.key});
@@ -26,10 +27,13 @@ class _SessionsPageState extends State<SessionsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const HeroBanner(
-            title: 'Expert Consultations',
-            subtitle:
-                'Get one-on-one guidance from verified digital bodyguards and security professionals.',
+          HeroBanner(
+            title: LocalizationService.instance.translate(
+              'sessions_page_title',
+            ),
+            subtitle: LocalizationService.instance.translate(
+              'sessions_page_subtitle',
+            ),
           ),
           const SizedBox(height: 32),
 
@@ -44,7 +48,7 @@ class _SessionsPageState extends State<SessionsPage> {
                 return Padding(
                   padding: const EdgeInsets.only(right: 12),
                   child: ChoiceChip(
-                    label: Text(cat),
+                    label: Text(_categoryLabel(cat)),
                     selected: isSelected,
                     onSelected: (val) =>
                         setState(() => _selectedCategory = cat),
@@ -82,6 +86,17 @@ class _SessionsPageState extends State<SessionsPage> {
         ],
       ),
     );
+  }
+
+  String _categoryLabel(String category) {
+    return switch (category) {
+      'Security' => LocalizationService.instance.translate('sessions_security'),
+      'Legal' => LocalizationService.instance.translate('sessions_legal'),
+      'Mental Health' => LocalizationService.instance.translate(
+        'sessions_mental_health',
+      ),
+      _ => LocalizationService.instance.translate('sessions_all'),
+    };
   }
 }
 
@@ -207,8 +222,8 @@ class _ExpertProfileCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Text(
-                      'Online',
+                    Text(
+                      LocalizationService.instance.translate('sessions_online'),
                       style: TextStyle(
                         color: Colors.greenAccent,
                         fontSize: 11,
@@ -246,8 +261,10 @@ class _ExpertProfileCard extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Next Available',
+                        Text(
+                          LocalizationService.instance.translate(
+                            'sessions_next_available',
+                          ),
                           style: TextStyle(
                             color: Colors.white38,
                             fontSize: 10,
@@ -269,8 +286,10 @@ class _ExpertProfileCard extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text(
-                          'Per 30 mins',
+                        Text(
+                          LocalizationService.instance.translate(
+                            'sessions_per_30_minutes',
+                          ),
                           style: TextStyle(
                             color: Colors.white38,
                             fontSize: 10,
@@ -327,19 +346,22 @@ class _BookingButtonState extends State<_BookingButton> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF0D1E2D),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text(
-          'Session Requested',
+        title: Text(
+          LocalizationService.instance.translate('sessions_requested'),
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Your request for a session with ${widget.expert.name} has been sent. Our team will verify and contact you within 15 minutes.',
+          LocalizationService.instance.translateWith(
+            'sessions_request_sent',
+            <String, String>{'name': widget.expert.name},
+          ),
           style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'GOT IT',
+            child: Text(
+              LocalizationService.instance.translate('sessions_got_it'),
               style: TextStyle(
                 color: Color(0xFF3FFFD7),
                 fontWeight: FontWeight.bold,
@@ -380,7 +402,7 @@ class _BookingButtonState extends State<_BookingButton> {
                   color: Colors.black,
                 ),
               )
-            : const Text('BOOK INSTANT SESSION'),
+            : Text(LocalizationService.instance.translate('sessions_book')),
       ),
     );
   }

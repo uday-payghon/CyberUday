@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/home_shared_widgets.dart';
+import '../../../services/localization_service.dart';
 
 class EmergencyContactsPage extends StatelessWidget {
   const EmergencyContactsPage({super.key});
@@ -21,10 +22,11 @@ class EmergencyContactsPage extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const HeroBanner(
-          title: 'Emergency Help Lines',
-          subtitle:
-              'Immediate access to authorities and emergency services. One-tap to call.',
+        HeroBanner(
+          title: LocalizationService.instance.translate('emergency_page_title'),
+          subtitle: LocalizationService.instance.translate(
+            'emergency_page_subtitle',
+          ),
         ),
         const SizedBox(height: 32),
         Wrap(
@@ -33,42 +35,54 @@ class EmergencyContactsPage extends StatelessWidget {
           children:
               [
                     _EmergencyCard(
-                      title: 'Police',
+                      title: LocalizationService.instance.translate(
+                        'emergency_police',
+                      ),
                       number: '100',
                       icon: Icons.local_police_rounded,
                       color: Colors.blueAccent,
                       onTap: () => _makePhoneCall('100'),
                     ),
                     _EmergencyCard(
-                      title: 'Ambulance',
+                      title: LocalizationService.instance.translate(
+                        'emergency_ambulance',
+                      ),
                       number: '102',
                       icon: Icons.medical_services_rounded,
                       color: Colors.redAccent,
                       onTap: () => _makePhoneCall('102'),
                     ),
                     _EmergencyCard(
-                      title: 'Fire Brigade',
+                      title: LocalizationService.instance.translate(
+                        'emergency_fire',
+                      ),
                       number: '101',
                       icon: Icons.fire_truck_rounded,
                       color: Colors.orangeAccent,
                       onTap: () => _makePhoneCall('101'),
                     ),
                     _EmergencyCard(
-                      title: 'Cyber Cell',
+                      title: LocalizationService.instance.translate(
+                        'emergency_cyber_cell',
+                      ),
                       number: '1930',
                       icon: Icons.security_rounded,
                       color: const Color(0xFF3FFFD7),
                       onTap: () => _makePhoneCall('1930'),
                     ),
                     _EmergencyCard(
-                      title: 'Women Helpline',
+                      title: LocalizationService.instance.translate(
+                        'emergency_women',
+                      ),
                       number: '1091',
                       icon: Icons.woman_rounded,
                       color: Colors.pinkAccent,
                       onTap: () => _makePhoneCall('1091'),
                     ),
                     _EmergencyCard(
-                      title: 'Child Helpline',
+                      title: LocalizationService.instance.translate(
+                        'emergency_child',
+                      ),
                       number: '1098',
                       icon: Icons.child_care_rounded,
                       color: Colors.tealAccent,
@@ -148,7 +162,10 @@ class _EmergencyCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Call: $number',
+                    LocalizationService.instance.translateWith(
+                      'call_label',
+                      <String, String>{'number': number},
+                    ),
                     style: TextStyle(
                       fontSize: 16,
                       color: color,

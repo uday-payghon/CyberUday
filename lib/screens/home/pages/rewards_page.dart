@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/home_shared_widgets.dart';
+import '../../../services/localization_service.dart';
 
 class RewardsPage extends StatelessWidget {
   const RewardsPage({super.key});
@@ -10,10 +11,11 @@ class RewardsPage extends StatelessWidget {
 
     return ListView(
       children: [
-        const HeroBanner(
-          title: 'Operative status, coins, premium support, and claim flow.',
-          subtitle:
-              'Users earn points by completing security habits like enabling 2FA, scanning devices, changing passwords, and helping others.',
+        HeroBanner(
+          title: LocalizationService.instance.translate('rewards_page_title'),
+          subtitle: LocalizationService.instance.translate(
+            'rewards_page_subtitle',
+          ),
         ),
         const SizedBox(height: 18),
         mobile
@@ -42,17 +44,27 @@ class RewardsStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SectionCard(
-      title: 'Operative status',
-      subtitle:
-          'Track balance, claim points, and complete your mobile challenge to unlock premium support.',
+    return SectionCard(
+      title: LocalizationService.instance.translate('rewards_status_title'),
+      subtitle: LocalizationService.instance.translate(
+        'rewards_status_subtitle',
+      ),
       child: Column(
         children: [
-          _MetricStrip(label: 'Balance', value: '142 coins'),
+          _MetricStrip(
+            label: LocalizationService.instance.translate('rewards_balance'),
+            value: '142 coins',
+          ),
           SizedBox(height: 10),
-          _MetricStrip(label: 'Points claim', value: 'Ready'),
+          _MetricStrip(
+            label: LocalizationService.instance.translate('rewards_points'),
+            value: LocalizationService.instance.translate('rewards_ready'),
+          ),
           SizedBox(height: 10),
-          _MetricStrip(label: 'Mobile challenge', value: '2/5 done'),
+          _MetricStrip(
+            label: LocalizationService.instance.translate('rewards_challenge'),
+            value: '2/5 done',
+          ),
         ],
       ),
     );
@@ -64,20 +76,24 @@ class PremiumFeaturesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SectionCard(
-      title: 'Premium features',
-      subtitle:
-          'Premium unlocks direct team support, faster case handling, and near-continuous availability.',
+    return SectionCard(
+      title: LocalizationService.instance.translate('rewards_premium_title'),
+      subtitle: LocalizationService.instance.translate(
+        'rewards_premium_subtitle',
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Our team support to solve your case'),
+          Text(LocalizationService.instance.translate('rewards_team_support')),
           SizedBox(height: 10),
-          Text('24/7 solution guidance'),
+          Text(LocalizationService.instance.translate('rewards_guidance')),
           SizedBox(height: 10),
-          Text('Priority escalation for high-risk reports'),
+          Text(LocalizationService.instance.translate('rewards_escalation')),
           SizedBox(height: 14),
-          ActionChipWidget(label: 'Claim Points', icon: Icons.redeem_rounded),
+          ActionChipWidget(
+            label: LocalizationService.instance.translate('rewards_claim'),
+            icon: Icons.redeem_rounded,
+          ),
         ],
       ),
     );

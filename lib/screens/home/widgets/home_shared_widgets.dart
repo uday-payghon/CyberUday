@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class HeroBanner extends StatelessWidget {
   const HeroBanner({
@@ -26,29 +27,19 @@ class HeroBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF10273A), Color(0xFF0C1E2D)],
-        ),
-        border: Border.all(color: const Color(0xFF1E4A67)),
+        borderRadius: BorderRadius.circular(16),
+        color: theme.colorScheme.surfaceContainerHighest,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'COMMAND CENTER',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: const Color(0xFF3FFFD7),
-              letterSpacing: 1.5,
-            ),
-          ),
-          const SizedBox(height: 10),
           Text(title, style: theme.textTheme.headlineMedium),
           const SizedBox(height: 12),
           Text(
             subtitle,
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: const Color(0xFFB6C9D9),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.68),
             ),
           ),
           if (primaryLabel != null || secondaryLabel != null) ...[
@@ -104,9 +95,9 @@ class SectionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        color: const Color(0xFF0B1823).withValues(alpha: 0.88),
-        border: Border.all(color: const Color(0xFF1E4A67)),
+        borderRadius: BorderRadius.circular(12),
+        color: theme.colorScheme.surface,
+        border: Border.all(color: theme.colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,38 +123,57 @@ class ActionChipWidget extends StatelessWidget {
   });
 
   final String label;
-  final IconData icon;
+  final dynamic icon;
   final VoidCallback? onTap;
   final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: isLoading ? null : onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFF1E4A67)),
-          color: const Color(0xFF10273A).withValues(alpha: 0.55),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            isLoading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Color(0xFF3FFFD7),
-                    ),
-                  )
-                : Icon(icon, size: 18, color: const Color(0xFF3FFFD7)),
-            const SizedBox(width: 8),
-            Text(label),
-          ],
+    final ThemeData theme = Theme.of(context);
+    return MouseRegion(
+      cursor: isLoading || onTap == null
+          ? SystemMouseCursors.basic
+          : SystemMouseCursors.click,
+      child: InkWell(
+        onTap: isLoading ? null : onTap,
+        borderRadius: BorderRadius.circular(8),
+        hoverColor: theme.colorScheme.secondary.withValues(alpha: 0.06),
+        focusColor: theme.colorScheme.secondary.withValues(alpha: 0.12),
+        highlightColor: theme.colorScheme.secondary.withValues(alpha: 0.1),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+            color: theme.colorScheme.surface,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              isLoading
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: theme.colorScheme.secondary,
+                      ),
+                    )
+                  : (icon is IconData
+                        ? Icon(
+                            icon as IconData,
+                            size: 18,
+                            color: theme.colorScheme.secondary,
+                          )
+                        : FaIcon(
+                            icon,
+                            size: 18,
+                            color: theme.colorScheme.secondary,
+                          )),
+              const SizedBox(width: 8),
+              Text(label),
+            ],
+          ),
         ),
       ),
     );

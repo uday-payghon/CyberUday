@@ -1,298 +1,390 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../widgets/home_shared_widgets.dart';
+
+import '../../../core/cyber_design_system.dart';
 import '../../../services/firebase_service.dart';
+import '../../../services/hacker_news_service.dart';
 import '../../../services/localization_service.dart';
+import '../widgets/cyber_news_preview.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({
     super.key,
     required this.user,
-    required this.onAdminTap,
+    required this.onNavigate,
+    this.onDevelopersTap,
+    this.latestNewsFuture,
   });
 
   final User? user;
-  final VoidCallback onAdminTap;
+  final ValueChanged<int> onNavigate;
+  final VoidCallback? onDevelopersTap;
+  final Future<List<HackerNewsStory>>? latestNewsFuture;
 
-  Future<void> _handleEmergencyAction(
-    BuildContext context,
-    String action,
-  ) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${LocalizationService.instance.translate('hacked_desc')}...',
-        ),
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData productTheme = CyberTheme.forBrightness(
+      Theme.of(context).brightness,
+    );
+    return Theme(
+      data: productTheme,
+      child: Builder(
+        builder: (context) {
+          final String name = _displayName(user);
+          final String greeting = LocalizationService.instance.translate(
+            'dashboard_greeting',
+          );
+
+          return ListView(
+            padding: CyberSpacing.pagePadding,
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: CyberDimensions.maxContentWidth,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$greeting, $name',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    CyberSpacing.vertical(CyberSpacing.xs),
+                    Text(
+                      LocalizationService.instance.translate('dashboard_intro'),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.68),
+                      ),
+                    ),
+                    CyberSpacing.vertical(CyberSpacing.xl),
+                    const _ProtectionOverview(),
+                    CyberSpacing.vertical(CyberSpacing.section),
+                    _SectionHeading(
+                      title: LocalizationService.instance.translate(
+                        'dashboard_quick_actions',
+                      ),
+                      subtitle: LocalizationService.instance.translate(
+                        'dashboard_quick_actions_subtitle',
+                      ),
+                    ),
+                    CyberSpacing.vertical(CyberSpacing.md),
+                    _QuickActions(onNavigate: onNavigate),
+                    CyberSpacing.vertical(CyberSpacing.xl),
+                    _EmergencyAction(
+                      onPressed: () => _confirmEmergency(context),
+                    ),
+                    CyberSpacing.vertical(CyberSpacing.xl),
+                    _SectionHeading(
+                      title: LocalizationService.instance.translate(
+                        'dashboard_activity_title',
+                      ),
+                      subtitle: LocalizationService.instance.translate(
+                        'dashboard_activity_subtitle',
+                      ),
+                    ),
+                    CyberSpacing.vertical(CyberSpacing.md),
+                    const _EmptyActivityCard(),
+                    CyberSpacing.vertical(CyberSpacing.xl),
+                    _BankSecurityTeaser(onTap: () => onNavigate(4)),
+                    CyberSpacing.vertical(CyberSpacing.xl),
+                    CyberNewsPreview(
+                      onViewAll: () => onNavigate(5),
+                      storiesFuture: latestNewsFuture,
+                    ),
+                    CyberSpacing.vertical(CyberSpacing.xl),
+                    _SectionHeading(
+                      title: LocalizationService.instance.translate(
+                        'dashboard_services_title',
+                      ),
+                      subtitle: LocalizationService.instance.translate(
+                        'dashboard_services_subtitle',
+                      ),
+                    ),
+                    CyberSpacing.vertical(CyberSpacing.md),
+                    _AdditionalServices(
+                      onNavigate: onNavigate,
+                      onDevelopersTap: onDevelopersTap,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _confirmEmergency(BuildContext context) async {
+    final String platform = Theme.of(context).platform.toString();
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(LocalizationService.instance.translate('hacked_title')),
+        content: Text(LocalizationService.instance.translate('hacked_desc')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(LocalizationService.instance.translate('cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            child: Text(LocalizationService.instance.translate('hacked_btn')),
+          ),
+        ],
       ),
     );
 
-    try {
-      await FirebaseService.instance.logEmergencyAction(action, {
-        'platform': Theme.of(context).platform.toString(),
-        'context': 'Dashboard Emergency Lane',
-        'isEmergency': action == 'I AM HACKED',
-      });
+    if (confirmed != true) return;
 
+    try {
+      await FirebaseService.instance.logEmergencyAction('I AM HACKED', {
+        'platform': platform,
+        'context': 'Citizen Dashboard Emergency Action',
+        'isEmergency': true,
+      });
       if (context.mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF0B1823),
-            title: Row(
-              children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.red),
-                const SizedBox(width: 10),
-                Text(LocalizationService.instance.translate('hacked_title')),
-              ],
-            ),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
             content: Text(
-              LocalizationService.instance.translate('hacked_desc'),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
+              LocalizationService.instance.translate(
+                'dashboard_emergency_logged',
               ),
-            ],
+            ),
           ),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              LocalizationService.instance.translate('dashboard_action_failed'),
+            ),
+          ),
+        );
       }
     }
   }
 
+  static String _displayName(User? user) {
+    final String? displayName = user?.displayName?.trim();
+    if (displayName != null && displayName.isNotEmpty) return displayName;
+    final String? email = user?.email?.trim();
+    if (email == null || email.isEmpty) return 'there';
+    return email.split('@').first;
+  }
+}
+
+class _ProtectionOverview extends StatelessWidget {
+  const _ProtectionOverview();
+
   @override
   Widget build(BuildContext context) {
-    final mobile = MediaQuery.sizeOf(context).width < 760;
-
-    return ValueListenableBuilder<String>(
-      valueListenable: LocalizationService.instance.currentLocale,
-      builder: (context, locale, _) {
-        return ListView(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          children: [
-            HeroBanner(
-              title: LocalizationService.instance.translate('hero_title'),
-              subtitle: 'Digital war needs a digital bodyguard.',
-              primaryLabel: LocalizationService.instance.translate(
-                'connect_bank',
-              ),
-              onPrimaryTap: () =>
-                  _handleEmergencyAction(context, 'Bank Connection'),
-              secondaryLabel: 'Admin',
-              onSecondaryTap: onAdminTap,
-            ),
-            const SizedBox(height: 18),
-
-            // EMERGENCY "I AM HACKED" BUTTON
-            InkWell(
-              onTap: () => _handleEmergencyAction(context, 'I AM HACKED'),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.red, width: 2),
+    return CyberCard(
+      variant: CyberCardVariant.status,
+      padding: const EdgeInsets.all(CyberSpacing.xl),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool compact = constraints.maxWidth < 620;
+          final Widget copy = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                LocalizationService.instance.translate(
+                  'dashboard_protection_title',
                 ),
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.security_update_warning,
-                        color: Colors.red,
-                        size: 28,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        LocalizationService.instance.translate('hacked_btn'),
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              CyberSpacing.vertical(CyberSpacing.xs),
+              Text(
+                LocalizationService.instance.translate(
+                  'dashboard_protection_description',
+                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.68),
                 ),
               ),
+            ],
+          );
+          final Widget status = CyberStatusIndicator(
+            status: CyberStatus.neutral,
+            label: LocalizationService.instance.translate(
+              'dashboard_protection_status',
             ),
+          );
 
-            const SizedBox(height: 18),
-            StreamBuilder<int>(
-              stream: FirebaseService.instance.getReportsCount(),
-              builder: (context, reportsSnapshot) {
-                return StreamBuilder<int>(
-                  stream: FirebaseService.instance.getThreatsCount(),
-                  builder: (context, threatsSnapshot) {
-                    return StreamBuilder<int>(
-                      stream: FirebaseService.instance.getConnectedBanksCount(),
-                      builder: (context, banksSnapshot) {
-                        return GridView.count(
-                          crossAxisCount: mobile ? 2 : 4,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          mainAxisSpacing: 14,
-                          crossAxisSpacing: 14,
-                          childAspectRatio: mobile ? 1.1 : 1.1,
-                          children: [
-                            MetricCard(
-                              title: LocalizationService.instance.translate(
-                                'total_reports',
-                              ),
-                              value: reportsSnapshot.data?.toString() ?? '0',
-                              icon: Icons.flag_rounded,
-                              accent: const Color(0xFF3FFFD7),
-                            ),
-                            MetricCard(
-                              title: LocalizationService.instance.translate(
-                                'threats_blocked',
-                              ),
-                              value: threatsSnapshot.data?.toString() ?? '0',
-                              icon: Icons.security_rounded,
-                              accent: const Color(0xFF5AB2FF),
-                            ),
-                            MetricCard(
-                              title: 'Connected Banks',
-                              value: banksSnapshot.data?.toString() ?? '0',
-                              icon: Icons.account_balance_rounded,
-                              accent: const Color(0xFFFFC857),
-                            ),
-                            const MetricCard(
-                              title: 'Helpline Actions',
-                              value: '24/7',
-                              icon: Icons.support_agent_rounded,
-                              accent: Color(0xFFFF5C8A),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
+          return compact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _ProtectionIcon(),
+                    CyberSpacing.vertical(CyberSpacing.md),
+                    copy,
+                    CyberSpacing.vertical(CyberSpacing.md),
+                    status,
+                  ],
+                )
+              : Row(
+                  children: [
+                    _ProtectionIcon(),
+                    CyberSpacing.horizontal(CyberSpacing.lg),
+                    Expanded(child: copy),
+                    CyberSpacing.horizontal(CyberSpacing.lg),
+                    status,
+                  ],
                 );
-              },
+        },
+      ),
+    );
+  }
+}
+
+class _ProtectionIcon extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Container(
+      width: 44,
+      height: 44,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer,
+        borderRadius: CyberRadius.standardRadius,
+      ),
+      child: Icon(
+        Icons.shield_outlined,
+        color: theme.colorScheme.secondary,
+        size: CyberDimensions.iconLarge,
+      ),
+    );
+  }
+}
+
+class _QuickActions extends StatelessWidget {
+  const _QuickActions({required this.onNavigate});
+
+  final ValueChanged<int> onNavigate;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final int columns = constraints.maxWidth >= 900
+            ? 4
+            : constraints.maxWidth >= 560
+            ? 2
+            : 1;
+        final double width =
+            (constraints.maxWidth - ((columns - 1) * CyberSpacing.md)) /
+            columns;
+
+        final List<_DashboardAction> actions = [
+          _DashboardAction(
+            label: LocalizationService.instance.translate(
+              'dashboard_action_scanner',
             ),
-            const SizedBox(height: 18),
-            if (mobile)
-              const Column(
-                children: [
-                  EmergencyBankPanel(),
-                  SizedBox(height: 14),
-                  DashboardGraphCard(),
-                  SizedBox(height: 14),
-                  RecentThreatFeed(),
-                ],
-              )
-            else
-              const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 7, child: DashboardGraphCard()),
-                  SizedBox(width: 14),
-                  Expanded(flex: 5, child: RecentThreatFeed()),
-                ],
-              ),
-            const SizedBox(height: 14),
-            SectionCard(
-              title: 'Left-side action lane',
-              subtitle: 'Quick response triggers for multiple scenarios.',
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  ActionChipWidget(
-                    label: LocalizationService.instance.translate(
-                      'freeze_bank',
-                    ),
-                    icon: Icons.lock_clock,
-                    onTap: () => _handleEmergencyAction(context, 'Bank Freeze'),
-                  ),
-                  ActionChipWidget(
-                    label: 'Contact Our Team',
-                    icon: Icons.call,
-                    onTap: () =>
-                        _handleEmergencyAction(context, 'Call to Team'),
-                  ),
-                  ActionChipWidget(
-                    label: 'Cyber Cell',
-                    icon: Icons.local_police,
-                    onTap: () =>
-                        _handleEmergencyAction(context, 'Cyber Cell Alert'),
-                  ),
-                  ActionChipWidget(
-                    label: 'Ambulance',
-                    icon: Icons.emergency,
-                    onTap: () =>
-                        _handleEmergencyAction(context, 'Emergency Services'),
-                  ),
-                ],
-              ),
+            description: LocalizationService.instance.translate(
+              'dashboard_action_scanner_description',
             ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 22),
-              child: Text(
-                'Logged in as ${user?.email ?? 'operator'}. All actions are encrypted and secured.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+            icon: Icons.travel_explore_rounded,
+            onTap: () => onNavigate(1),
+          ),
+          _DashboardAction(
+            label: LocalizationService.instance.translate(
+              'dashboard_action_report',
             ),
-          ],
+            description: LocalizationService.instance.translate(
+              'dashboard_action_report_description',
+            ),
+            icon: Icons.campaign_rounded,
+            onTap: () => onNavigate(3),
+          ),
+          _DashboardAction(
+            label: LocalizationService.instance.translate(
+              'dashboard_action_emergency',
+            ),
+            description: LocalizationService.instance.translate(
+              'dashboard_action_emergency_description',
+            ),
+            icon: Icons.emergency_rounded,
+            onTap: () => onNavigate(2),
+            variant: CyberCardVariant.emergency,
+          ),
+        ];
+
+        return Wrap(
+          spacing: CyberSpacing.md,
+          runSpacing: CyberSpacing.md,
+          children: actions
+              .map((action) => SizedBox(width: width, child: action))
+              .toList(),
         );
       },
     );
   }
 }
 
-class MetricCard extends StatelessWidget {
-  const MetricCard({
-    super.key,
-    required this.title,
-    required this.value,
+class _DashboardAction extends StatelessWidget {
+  const _DashboardAction({
+    required this.label,
+    required this.description,
     required this.icon,
-    required this.accent,
+    required this.onTap,
+    this.variant = CyberCardVariant.action,
   });
 
-  final String title;
-  final String value;
+  final String label;
+  final String description;
   final IconData icon;
-  final Color accent;
+  final VoidCallback onTap;
+  final CyberCardVariant variant;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        color: const Color(0xFF0C1B28),
-        border: Border.all(color: const Color(0xFF1E4A67)),
-      ),
+    final bool danger = variant == CyberCardVariant.emergency;
+    return CyberCard(
+      variant: variant,
+      onTap: onTap,
+      semanticLabel: label,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: accent, size: 20),
-          const Spacer(),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 12, color: Colors.white70),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: danger
+                  ? Theme.of(context).colorScheme.errorContainer
+                  : Theme.of(context).colorScheme.secondaryContainer,
+              borderRadius: CyberRadius.standardRadius,
+            ),
+            child: Icon(
+              icon,
+              color: danger
+                  ? Theme.of(context).colorScheme.error
+                  : Theme.of(context).colorScheme.secondary,
+              size: CyberDimensions.iconLarge,
+            ),
           ),
-          const SizedBox(height: 4),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              value,
-              style: TextStyle(
-                color: accent,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-              ),
+          CyberSpacing.vertical(CyberSpacing.md),
+          Text(label, style: Theme.of(context).textTheme.titleMedium),
+          CyberSpacing.vertical(CyberSpacing.xs),
+          Text(
+            description,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.68),
             ),
           ),
         ],
@@ -301,155 +393,302 @@ class MetricCard extends StatelessWidget {
   }
 }
 
-class DashboardGraphCard extends StatelessWidget {
-  const DashboardGraphCard({super.key});
+class _EmergencyAction extends StatelessWidget {
+  const _EmergencyAction({required this.onPressed});
+
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<int>>(
-      stream: FirebaseService.instance.getMonthlyReportStats(),
-      builder: (context, snapshot) {
-        final stats = snapshot.data ?? List.filled(12, 0);
-        int maxVal = stats.reduce((a, b) => a > b ? a : b);
-        if (maxVal == 0) maxVal = 1;
-
-        return SectionCard(
-          title: 'Threat activity graph',
-          subtitle: 'Real-time report traffic analysis across months.',
-          child: SizedBox(
-            height: 220,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: List.generate(
-                12,
-                (index) => Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 5),
-                    child: Container(
-                      height: (stats[index] / maxVal) * 180 + 20,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        gradient: const LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [Color(0xFF3FFFD7), Color(0xFF5AB2FF)],
-                        ),
+    return CyberCard(
+      variant: CyberCardVariant.criticalAlert,
+      padding: const EdgeInsets.all(CyberSpacing.xl),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool compact = constraints.maxWidth < 660;
+          final ThemeData theme = Theme.of(context);
+          final Widget copy = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: theme.colorScheme.error,
+                    size: CyberDimensions.iconLarge,
+                  ),
+                  CyberSpacing.horizontal(CyberSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      LocalizationService.instance.translate('hacked_btn'),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.error,
                       ),
                     ),
                   ),
+                ],
+              ),
+              CyberSpacing.vertical(CyberSpacing.sm),
+              Text(
+                LocalizationService.instance.translate(
+                  'dashboard_emergency_description',
                 ),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+                ),
+              ),
+            ],
+          );
+          final Widget button = CyberButton(
+            label: LocalizationService.instance.translate('dashboard_get_help'),
+            variant: CyberButtonVariant.danger,
+            icon: const Icon(Icons.security_update_warning_rounded),
+            onPressed: onPressed,
+          );
+
+          return compact
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    copy,
+                    CyberSpacing.vertical(CyberSpacing.md),
+                    button,
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: copy),
+                    CyberSpacing.horizontal(CyberSpacing.lg),
+                    button,
+                  ],
+                );
+        },
+      ),
+    );
+  }
+}
+
+class _EmptyActivityCard extends StatelessWidget {
+  const _EmptyActivityCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return CyberCard(
+      variant: CyberCardVariant.standard,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.secondaryContainer,
+              borderRadius: CyberRadius.standardRadius,
+            ),
+            child: Icon(
+              Icons.inbox_outlined,
+              color: Theme.of(context).colorScheme.secondary,
+              size: CyberDimensions.iconMedium,
+            ),
+          ),
+          CyberSpacing.horizontal(CyberSpacing.md),
+          Expanded(
+            child: Text(
+              LocalizationService.instance.translate(
+                'dashboard_activity_empty',
+              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.68),
               ),
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
 
-class RecentThreatFeed extends StatelessWidget {
-  const RecentThreatFeed({super.key});
+class _BankSecurityTeaser extends StatelessWidget {
+  const _BankSecurityTeaser({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: FirebaseService.instance.getAllThreats(),
-      builder: (context, snapshot) {
-        final threats = snapshot.data ?? [];
-        return SectionCard(
-          title: 'Recent cybercrime',
-          subtitle: 'Live patterns from the field.',
-          child: Column(
-            children: threats
-                .take(3)
-                .map(
-                  (threat) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: _NewsTile(
-                      headline: threat['headline'] ?? 'Suspicious Activity',
-                      meta:
-                          'Context: ${threat['url'] ?? threat['appName'] ?? 'Unknown'}',
+    final ThemeData theme = Theme.of(context);
+    return CyberCard(
+      variant: CyberCardVariant.standard,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final Widget copy = Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.secondaryContainer,
+                  borderRadius: CyberRadius.standardRadius,
+                ),
+                child: Icon(
+                  Icons.account_balance_outlined,
+                  color: theme.colorScheme.secondary,
+                  size: CyberDimensions.iconLarge,
+                ),
+              ),
+              CyberSpacing.horizontal(CyberSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      LocalizationService.instance.translate(
+                        'bank_security_title',
+                      ),
+                      style: theme.textTheme.titleMedium,
                     ),
-                  ),
+                    CyberSpacing.vertical(CyberSpacing.xxs),
+                    Text(
+                      LocalizationService.instance.translate(
+                        'dashboard_bank_security_description',
+                      ),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.68,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+          final Widget action = CyberButton(
+            label: LocalizationService.instance.translate(
+              'dashboard_bank_security_view',
+            ),
+            variant: CyberButtonVariant.tertiary,
+            icon: const Icon(Icons.arrow_forward_rounded),
+            onPressed: onTap,
+          );
+
+          return constraints.maxWidth < 620
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    copy,
+                    CyberSpacing.vertical(CyberSpacing.sm),
+                    action,
+                  ],
                 )
-                .toList(),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _NewsTile extends StatelessWidget {
-  const _NewsTile({required this.headline, required this.meta});
-
-  final String headline;
-  final String meta;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF1E4A67)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            headline,
-            style: theme.textTheme.titleMedium,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            meta,
-            style: theme.textTheme.bodyMedium,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+              : Row(
+                  children: [
+                    Expanded(child: copy),
+                    CyberSpacing.horizontal(CyberSpacing.lg),
+                    action,
+                  ],
+                );
+        },
       ),
     );
   }
 }
 
-class EmergencyBankPanel extends StatelessWidget {
-  const EmergencyBankPanel({super.key});
+class _AdditionalServices extends StatelessWidget {
+  const _AdditionalServices({required this.onNavigate, this.onDevelopersTap});
+
+  final ValueChanged<int> onNavigate;
+  final VoidCallback? onDevelopersTap;
 
   @override
   Widget build(BuildContext context) {
-    return SectionCard(
-      title: 'Emergency Handshake',
-      subtitle: 'Fast-track connectivity for high-risk accounts.',
+    final List<_ServiceLink> services = [
+      _ServiceLink(
+        LocalizationService.instance.translate('cyber_news'),
+        Icons.newspaper_rounded,
+        () => onNavigate(5),
+      ),
+      _ServiceLink(
+        LocalizationService.instance.translate('rewards'),
+        Icons.workspace_premium_rounded,
+        () => onNavigate(7),
+      ),
+      _ServiceLink(
+        LocalizationService.instance.translate('sessions'),
+        Icons.groups_rounded,
+        () => onNavigate(8),
+      ),
+      _ServiceLink(
+        LocalizationService.instance.translate('scan_system'),
+        Icons.phonelink_lock_rounded,
+        () => onNavigate(6),
+      ),
+      _ServiceLink(
+        LocalizationService.instance.translate('contact_us'),
+        Icons.support_agent_rounded,
+        () => onNavigate(9),
+      ),
+      _ServiceLink(
+        LocalizationService.instance.translate('developers'),
+        Icons.engineering_rounded,
+        onDevelopersTap ?? () => onNavigate(10),
+      ),
+    ];
+
+    return CyberCard(
+      variant: CyberCardVariant.standard,
+      padding: const EdgeInsets.all(CyberSpacing.md),
       child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: [
-          ActionChipWidget(
-            label: LocalizationService.instance.translate('freeze_bank'),
-            icon: Icons.lock_clock_rounded,
-            onTap: () => _handleAction(context, 'Bank Data Freeze'),
-          ),
-          ActionChipWidget(
-            label: LocalizationService.instance.translate('connect_bank'),
-            icon: Icons.link_rounded,
-            onTap: () => _handleAction(context, 'Bank Permission'),
-          ),
-        ],
+        spacing: CyberSpacing.xs,
+        runSpacing: CyberSpacing.xs,
+        children: services
+            .map(
+              (service) => TextButton.icon(
+                onPressed: service.onTap,
+                icon: Icon(service.icon, size: CyberDimensions.iconMedium),
+                label: Text(service.label),
+              ),
+            )
+            .toList(),
       ),
     );
   }
+}
 
-  void _handleAction(BuildContext context, String action) async {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Simulating $action...')));
-    await FirebaseService.instance.logEmergencyAction(action, {
-      'source': 'Emergency Panel',
-    });
+class _ServiceLink {
+  const _ServiceLink(this.label, this.icon, this.onTap);
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+}
+
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.titleLarge),
+        CyberSpacing.vertical(CyberSpacing.xs),
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.68),
+          ),
+        ),
+      ],
+    );
   }
 }

@@ -35,6 +35,11 @@ migrate_working_dir/
 /coverage/
 .firebase/
 
+# Local secret configuration
+.env
+.env.*
+!.env.example
+
 # Symbolication related
 app.*.symbols
 

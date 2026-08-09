@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 
+import '../core/cyber_design_system.dart';
+import '../core/localization/app_localizations_helper.dart';
+import '../core/localization/auth_error_localizer.dart';
+import '../dev/demo_dashboard_screen.dart';
+import '../dev/development_access.dart';
+import '../l10n/app_localizations.dart';
 import '../services/auth_service.dart';
-import '../widgets/cyber_layout.dart';
-import 'admin_login_screen.dart';
+import '../services/localization_service.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -27,11 +31,12 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  AppLocalizations get _localizations =>
+      appLocalizationsFor(LocalizationService.instance.currentLocale.value);
+
   Future<void> _login() async {
-    final form = _formKey.currentState;
-    if (form == null || !form.validate()) {
-      return;
-    }
+    final FormState? form = _formKey.currentState;
+    if (form == null || !form.validate()) return;
 
     setState(() => _loading = true);
     try {
@@ -40,11 +45,9 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
     } catch (error) {
-      _showMessage(error.toString());
+      _showMessage(localizedAuthError(_localizations, error));
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -53,11 +56,28 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await AuthService.instance.signInWithGoogle();
     } catch (error) {
-      _showMessage(error.toString());
+      _showMessage(localizedAuthError(_localizations, error));
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    final AppLocalizations localizations = _localizations;
+    final String email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      _showMessage(localizations.authResetEmailPrompt);
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      await AuthService.instance.sendPasswordResetEmail(email);
+      _showMessage(localizations.authResetEmailSent(email));
+    } catch (error) {
+      _showMessage(localizedAuthError(localizations, error));
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -67,327 +87,355 @@ class _LoginScreenState extends State<LoginScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  void _openSignUp() {
+    if (_loading) return;
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const SignUpScreen()));
+  }
+
+  void _openDemoDashboard() {
+    if (!cyberUdayDevelopmentAccessEnabled || _loading) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const DemoDashboardScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bool androidPhone =
-        !kIsWeb &&
-        defaultTargetPlatform == TargetPlatform.android &&
-        MediaQuery.sizeOf(context).width < 720;
-
-    return CyberLayout(
-      heroTag: 'AUTHENTICATION NODE',
-      title: 'Secure access for your cyber workspace.',
-      subtitle:
-          'Monitor your profile, keep your login path hardened, and use Google or email authentication with clear failure states.',
-      sideNote: androidPhone
-          ? _AndroidQuickNotes(
-              items: const [
-                ('Google login is connected to Firebase.'),
-                ('Email login and signup show clear errors.'),
-                ('Android layout is optimized for small screens.'),
-              ],
-            )
-          : _InfoRail(
-              items: const [
-                ('01', 'Real-time auth state handling'),
-                ('02', 'Google OAuth and email login'),
-                ('03', 'Responsive layout for mobile, tablet, desktop'),
-              ],
-            ),
-      panel: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Sign in', style: theme.textTheme.headlineMedium),
-          const SizedBox(height: 8),
-          Text(
-            'Login, sign up, or open admin access from one security entry point.',
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              const _EntryTag(label: 'LOGIN', active: true),
-              InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: _loading
-                    ? null
-                    : () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const SignUpScreen(),
+    return ValueListenableBuilder<String>(
+      valueListenable: LocalizationService.instance.currentLocale,
+      builder: (BuildContext context, String localeCode, Widget? child) {
+        final AppLocalizations localizations = appLocalizationsFor(localeCode);
+        final ThemeData authTheme = CyberTheme.forBrightness(
+          Theme.of(context).brightness,
+        );
+        return Theme(
+          data: authTheme,
+          child: Scaffold(
+            backgroundColor: authTheme.scaffoldBackgroundColor,
+            body: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final bool wide = constraints.maxWidth >= 860;
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: wide
+                                ? CyberSpacing.page
+                                : CyberSpacing.md,
+                            vertical: CyberSpacing.xl,
                           ),
-                        );
-                      },
-                child: const _EntryTag(label: 'SIGN UP'),
-              ),
-              InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: _loading
-                    ? null
-                    : () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const AdminLoginScreen(),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1080),
+                            child: wide
+                                ? Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Expanded(
+                                        child: _CitizenBrandPanel(
+                                          localizations: localizations,
+                                          alignStart: true,
+                                        ),
+                                      ),
+                                      CyberSpacing.horizontal(
+                                        CyberSpacing.page,
+                                      ),
+                                      SizedBox(
+                                        width: 420,
+                                        child: _SignInForm(
+                                          formKey: _formKey,
+                                          emailController: _emailController,
+                                          passwordController:
+                                              _passwordController,
+                                          localizations: localizations,
+                                          loading: _loading,
+                                          onLogin: _login,
+                                          onGoogleLogin: _loginWithGoogle,
+                                          onResetPassword: _resetPassword,
+                                          onCreateAccount: _openSignUp,
+                                          onDemoAccess:
+                                              cyberUdayDevelopmentAccessEnabled
+                                              ? _openDemoDashboard
+                                              : null,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    children: [
+                                      _CitizenBrandPanel(
+                                        localizations: localizations,
+                                      ),
+                                      CyberSpacing.vertical(CyberSpacing.xxl),
+                                      _SignInForm(
+                                        formKey: _formKey,
+                                        emailController: _emailController,
+                                        passwordController: _passwordController,
+                                        localizations: localizations,
+                                        loading: _loading,
+                                        onLogin: _login,
+                                        onGoogleLogin: _loginWithGoogle,
+                                        onResetPassword: _resetPassword,
+                                        onCreateAccount: _openSignUp,
+                                        onDemoAccess:
+                                            cyberUdayDevelopmentAccessEnabled
+                                            ? _openDemoDashboard
+                                            : null,
+                                      ),
+                                    ],
+                                  ),
                           ),
-                        );
-                      },
-                child: const _EntryTag(label: 'ADMIN'),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  autofillHints: const [AutofillHints.username],
-                  decoration: const InputDecoration(
-                    labelText: 'Email address',
-                    prefixIcon: Icon(Icons.alternate_email_rounded),
-                  ),
-                  validator: (value) {
-                    final text = value?.trim() ?? '';
-                    if (text.isEmpty || !text.contains('@')) {
-                      return 'Enter a valid email address.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  autofillHints: const [AutofillHints.password],
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock_outline_rounded),
-                  ),
-                  validator: (value) {
-                    if ((value ?? '').isEmpty) {
-                      return 'Enter your password.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _loading ? null : _login,
-                  child: _loading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2.4),
-                        )
-                      : const Text('Access Dashboard'),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: _loading ? null : _loginWithGoogle,
-                  icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
-                  label: const Text('Continue with Google'),
-                ),
-              ],
             ),
           ),
-          const SizedBox(height: 18),
-          _SecurityHintCard(androidPhone: androidPhone),
-          const SizedBox(height: 16),
-          Wrap(
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 2,
-            children: [
-              Text('Need an account?', style: theme.textTheme.bodyMedium),
-              TextButton(
-                onPressed: _loading
-                    ? null
-                    : () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const SignUpScreen(),
-                          ),
-                        );
-                      },
-                child: const Text('Create one'),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
-class _AndroidQuickNotes extends StatelessWidget {
-  const _AndroidQuickNotes({required this.items});
+class _CitizenBrandPanel extends StatelessWidget {
+  const _CitizenBrandPanel({
+    required this.localizations,
+    this.alignStart = false,
+  });
 
-  final List<String> items;
+  final AppLocalizations localizations;
+  final bool alignStart;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF1E4A67)),
-        color: const Color(0xFF0B1823).withValues(alpha: 0.84),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Quick status',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: const Color(0xFF3FFFD7),
-              fontWeight: FontWeight.w700,
-            ),
+    final ThemeData theme = Theme.of(context);
+    final CrossAxisAlignment axis = alignStart
+        ? CrossAxisAlignment.start
+        : CrossAxisAlignment.center;
+    return Column(
+      crossAxisAlignment: axis,
+      children: [
+        Semantics(
+          image: true,
+          label: localizations.authBrandLine,
+          child: Image.asset(
+            'assets/cyber_uday_mark.png',
+            width: alignStart ? 112 : 88,
+            height: alignStart ? 112 : 88,
+            fit: BoxFit.contain,
           ),
-          const SizedBox(height: 10),
-          for (final item in items) ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        CyberSpacing.vertical(CyberSpacing.lg),
+        Text(
+          'CYBER UDAY',
+          style: theme.textTheme.headlineLarge,
+          textAlign: alignStart ? TextAlign.left : TextAlign.center,
+        ),
+        CyberSpacing.vertical(CyberSpacing.xs),
+        Text(
+          localizations.authBrandLine,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: CyberColors.brandAccent,
+          ),
+          textAlign: alignStart ? TextAlign.left : TextAlign.center,
+        ),
+        CyberSpacing.vertical(CyberSpacing.md),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Text(
+            localizations.authSignInIntro,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.68),
+            ),
+            textAlign: alignStart ? TextAlign.left : TextAlign.center,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SignInForm extends StatelessWidget {
+  const _SignInForm({
+    required this.formKey,
+    required this.emailController,
+    required this.passwordController,
+    required this.localizations,
+    required this.loading,
+    required this.onLogin,
+    required this.onGoogleLogin,
+    required this.onResetPassword,
+    required this.onCreateAccount,
+    this.onDemoAccess,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final AppLocalizations localizations;
+  final bool loading;
+  final VoidCallback onLogin;
+  final VoidCallback onGoogleLogin;
+  final VoidCallback onResetPassword;
+  final VoidCallback onCreateAccount;
+  final VoidCallback? onDemoAccess;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return CyberCard(
+      variant: CyberCardVariant.elevated,
+      padding: const EdgeInsets.all(CyberSpacing.xl),
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              localizations.authWelcomeBack,
+              style: theme.textTheme.headlineMedium,
+            ),
+            CyberSpacing.vertical(CyberSpacing.xs),
+            Text(
+              localizations.authSignInIntro,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: CyberColors.textSecondary,
+              ),
+            ),
+            CyberSpacing.vertical(CyberSpacing.xl),
+            TextFormField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.username],
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(
+                labelText: localizations.authEmailLabel,
+                prefixIcon: const Icon(Icons.alternate_email_rounded),
+              ),
+              validator: (value) {
+                final String text = value?.trim() ?? '';
+                return text.isEmpty || !text.contains('@')
+                    ? localizations.authEmailValidation
+                    : null;
+              },
+            ),
+            CyberSpacing.vertical(CyberSpacing.md),
+            TextFormField(
+              controller: passwordController,
+              obscureText: true,
+              autofillHints: const [AutofillHints.password],
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                labelText: localizations.authPasswordLabel,
+                prefixIcon: const Icon(Icons.lock_outline_rounded),
+              ),
+              validator: (value) => (value ?? '').isEmpty
+                  ? localizations.authPasswordValidation
+                  : null,
+              onFieldSubmitted: (_) => loading ? null : onLogin(),
+            ),
+            CyberSpacing.vertical(CyberSpacing.lg),
+            CyberButton(
+              label: localizations.authSignIn,
+              onPressed: loading ? null : onLogin,
+              isLoading: loading,
+              expand: true,
+              icon: const Icon(Icons.arrow_forward_rounded),
+              semanticLabel: localizations.authSignIn,
+            ),
+            CyberSpacing.vertical(CyberSpacing.sm),
+            OutlinedButton.icon(
+              onPressed: loading ? null : onGoogleLogin,
+              icon: const Icon(Icons.g_mobiledata_rounded, size: 28),
+              label: Text(localizations.authContinueGoogle),
+            ),
+            CyberSpacing.vertical(CyberSpacing.sm),
+            _SecurityNotice(text: localizations.authSecurityNotice),
+            Align(
+              alignment: Alignment.center,
+              child: TextButton(
+                onPressed: loading ? null : onResetPassword,
+                child: Text(localizations.authForgotPassword),
+              ),
+            ),
+            const Divider(height: CyberSpacing.lg),
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: CyberSpacing.xxs,
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: 6),
-                  child: Icon(Icons.circle, size: 8, color: Color(0xFF3FFFD7)),
+                Text(
+                  localizations.authNoAccount,
+                  style: theme.textTheme.bodyMedium,
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    item,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFFF2F7FB),
-                    ),
-                  ),
+                TextButton(
+                  onPressed: loading ? null : onCreateAccount,
+                  child: Text(localizations.authCreateAccount),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            if (onDemoAccess != null) ...[
+              const Divider(height: CyberSpacing.lg),
+              Text(
+                localizations.authDevPreview,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.64),
+                ),
+              ),
+              CyberSpacing.vertical(CyberSpacing.xs),
+              CyberButton(
+                label: localizations.authDevAccessDashboard,
+                variant: CyberButtonVariant.secondary,
+                icon: const Icon(Icons.visibility_outlined),
+                expand: true,
+                onPressed: loading ? null : onDemoAccess,
+                semanticLabel: localizations.authDevAccessDashboard,
+              ),
+            ],
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _EntryTag extends StatelessWidget {
-  const _EntryTag({required this.label, this.active = false});
-
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: active
-            ? const Color(0xFF10273A)
-            : const Color(0xFF0B1823).withValues(alpha: 0.78),
-        border: Border.all(
-          color: active ? const Color(0xFF3FFFD7) : const Color(0xFF1E4A67),
-        ),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: active ? const Color(0xFF3FFFD7) : Colors.white,
-          letterSpacing: 1.1,
         ),
       ),
     );
   }
 }
 
-class _SecurityHintCard extends StatelessWidget {
-  const _SecurityHintCard({required this.androidPhone});
+class _SecurityNotice extends StatelessWidget {
+  const _SecurityNotice({required this.text});
 
-  final bool androidPhone;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: EdgeInsets.all(androidPhone ? 12 : 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF1E4A67)),
-        color: const Color(0xFF10273A).withValues(alpha: 0.40),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
-            child: Icon(Icons.verified_user_outlined, color: Color(0xFF3FFFD7)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Use the Firebase SHA and OAuth client you configured for this app. Google sign-in errors are now surfaced instead of hidden.',
-              style: theme.textTheme.bodyMedium,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoRail extends StatelessWidget {
-  const _InfoRail({required this.items});
-
-  final List<(String, String)> items;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Wrap(
-      spacing: 14,
-      runSpacing: 14,
-      children: items
-          .map(
-            (item) => Container(
-              constraints: const BoxConstraints(minWidth: 190, maxWidth: 240),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF1E4A67)),
-                color: const Color(0xFF0B1823).withValues(alpha: 0.82),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.$1,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: const Color(0xFF3FFFD7),
-                      letterSpacing: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    item.$2,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFFF2F7FB),
-                    ),
-                  ),
-                ],
-              ),
+    final ThemeData theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          Icons.verified_user_outlined,
+          size: 16,
+          color: theme.colorScheme.secondary,
+        ),
+        CyberSpacing.horizontal(CyberSpacing.xs),
+        Expanded(
+          child: Text(
+            text,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.64),
             ),
-          )
-          .toList(),
+          ),
+        ),
+      ],
     );
   }
 }

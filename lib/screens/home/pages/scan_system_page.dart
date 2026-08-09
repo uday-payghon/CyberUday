@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/home_shared_widgets.dart';
+import '../../../services/localization_service.dart';
 
 class ScanSystemPage extends StatelessWidget {
   const ScanSystemPage({super.key});
@@ -10,10 +11,11 @@ class ScanSystemPage extends StatelessWidget {
 
     return ListView(
       children: [
-        const HeroBanner(
-          title: 'Scan your mobile and computer for threats.',
-          subtitle:
-              'Separate sections for mobile and computer checks, built as a guided security intake surface for future scanning integrations.',
+        HeroBanner(
+          title: LocalizationService.instance.translate('scan_page_title'),
+          subtitle: LocalizationService.instance.translate(
+            'scan_page_subtitle',
+          ),
         ),
         const SizedBox(height: 18),
         mobile
@@ -42,12 +44,11 @@ class MobileScanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SectionCard(
-      title: 'Scan your mobile',
-      subtitle:
-          'Find risky permissions, fake loan apps, hidden overlays, and notification interception patterns.',
+    return SectionCard(
+      title: LocalizationService.instance.translate('scan_mobile_title'),
+      subtitle: LocalizationService.instance.translate('scan_mobile_subtitle'),
       child: ActionChipWidget(
-        label: 'Start Mobile Scan',
+        label: LocalizationService.instance.translate('scan_mobile_action'),
         icon: Icons.phone_android_rounded,
       ),
     );
@@ -59,12 +60,13 @@ class ComputerScanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SectionCard(
-      title: 'Scan your computer',
-      subtitle:
-          'Check browser warnings, remote access exposure, phishing traces, and suspicious downloads.',
+    return SectionCard(
+      title: LocalizationService.instance.translate('scan_computer_title'),
+      subtitle: LocalizationService.instance.translate(
+        'scan_computer_subtitle',
+      ),
       child: ActionChipWidget(
-        label: 'Start Computer Scan',
+        label: LocalizationService.instance.translate('scan_computer_action'),
         icon: Icons.computer_rounded,
       ),
     );

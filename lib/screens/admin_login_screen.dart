@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import '../widgets/cyber_layout.dart';
 import 'admin_dashboard_screen.dart';
 
@@ -15,9 +16,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _submitting = false;
 
-  // HARDCODED ADMIN CREDENTIALS
-  static const String _adminEmail = "adminuser@gmail.com";
-  static const String _adminPassword = "REMOVED_LEGACY_ADMIN_CREDENTIAL";
+  static const Set<String> _adminEmails = {
+    'founder@cyberuday.com',
+    'udaypayghon@gmail.com',
+  };
 
   @override
   void dispose() {
@@ -33,23 +35,40 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     }
 
     setState(() => _submitting = true);
-    await Future<void>.delayed(const Duration(milliseconds: 1000));
+    final email = _emailController.text.trim().toLowerCase();
 
-    if (!mounted) return;
-    setState(() => _submitting = false);
+    try {
+      await AuthService.instance.login(
+        email: email,
+        password: _passwordController.text,
+      );
 
-    if (_emailController.text.trim() == _adminEmail &&
-        _passwordController.text == _adminPassword) {
+      if (!_adminEmails.contains(email)) {
+        await AuthService.instance.logout();
+        throw const AuthFailure(
+          'This account is not authorized for admin access.',
+        );
+      }
+
+      if (!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Admin Access Granted.')));
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid Admin Credentials.')),
-      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
     }
   }
 
