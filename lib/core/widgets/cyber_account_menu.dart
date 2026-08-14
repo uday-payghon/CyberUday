@@ -4,9 +4,8 @@ import '../localization/supported_language.dart';
 import '../theme/cyber_tokens.dart';
 import '../../services/language_preference_service.dart';
 import '../../services/localization_service.dart';
-import '../../services/theme_preference_service.dart';
 
-enum _CyberAccountMenuAction { profile, language, appearance, signOut }
+enum _CyberAccountMenuAction { profile, language, signOut }
 
 class CyberAccountAvatar extends StatelessWidget {
   const CyberAccountAvatar({
@@ -83,20 +82,6 @@ class CyberAccountPreferences {
     return language?.nativeName ?? SupportedLanguage.fromCode('en')!.nativeName;
   }
 
-  static String appearanceName(ThemeMode mode) {
-    return switch (mode) {
-      ThemeMode.light => LocalizationService.instance.translate(
-        'profile_appearance_light',
-      ),
-      ThemeMode.dark => LocalizationService.instance.translate(
-        'profile_appearance_dark',
-      ),
-      ThemeMode.system => LocalizationService.instance.translate(
-        'profile_appearance_system',
-      ),
-    };
-  }
-
   static Future<void> chooseLanguage(BuildContext context) async {
     final String? code = await showModalBottomSheet<String>(
       context: context,
@@ -141,56 +126,6 @@ class CyberAccountPreferences {
     final SupportedLanguage? language = SupportedLanguage.fromCode(code);
     if (language != null) {
       await LanguagePreferenceService.instance.save(language);
-    }
-  }
-
-  static Future<void> chooseAppearance(BuildContext context) async {
-    final ThemeMode selectedMode =
-        ThemePreferenceService.instance.currentThemeMode.value;
-    final ThemeMode? mode = await showModalBottomSheet<ThemeMode>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                CyberSpacing.xl,
-                0,
-                CyberSpacing.xl,
-                CyberSpacing.sm,
-              ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  LocalizationService.instance.translate('profile_appearance'),
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-            ),
-            RadioGroup<ThemeMode>(
-              groupValue: selectedMode,
-              onChanged: (ThemeMode? value) => Navigator.pop(context, value),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final ThemeMode mode in ThemeMode.values)
-                    RadioListTile<ThemeMode>(
-                      value: mode,
-                      title: Text(appearanceName(mode)),
-                    ),
-                ],
-              ),
-            ),
-            CyberSpacing.vertical(CyberSpacing.sm),
-          ],
-        ),
-      ),
-    );
-
-    if (mode != null) {
-      await ThemePreferenceService.instance.save(mode);
     }
   }
 
@@ -251,8 +186,6 @@ class CyberAccountMenu extends StatelessWidget {
     final String name = _accountName();
     final String? accountEmail = email?.trim();
     final String locale = LocalizationService.instance.currentLocale.value;
-    final ThemeMode themeMode =
-        ThemePreferenceService.instance.currentThemeMode.value;
 
     return PopupMenuButton<_CyberAccountMenuAction>(
       tooltip: LocalizationService.instance.translate('profile_title'),
@@ -277,8 +210,6 @@ class CyberAccountMenu extends StatelessWidget {
             onProfile();
           case _CyberAccountMenuAction.language:
             await CyberAccountPreferences.chooseLanguage(context);
-          case _CyberAccountMenuAction.appearance:
-            await CyberAccountPreferences.chooseAppearance(context);
           case _CyberAccountMenuAction.signOut:
             await onSignOut();
         }
@@ -300,12 +231,6 @@ class CyberAccountMenu extends StatelessWidget {
           icon: Icons.language_rounded,
           title: LocalizationService.instance.translate('profile_language'),
           valueLabel: CyberAccountPreferences.languageName(locale),
-        ),
-        _AccountMenuItem(
-          value: _CyberAccountMenuAction.appearance,
-          icon: Icons.contrast_rounded,
-          title: LocalizationService.instance.translate('profile_appearance'),
-          valueLabel: CyberAccountPreferences.appearanceName(themeMode),
         ),
         const PopupMenuDivider(),
         _AccountMenuItem(

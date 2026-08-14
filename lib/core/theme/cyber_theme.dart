@@ -51,10 +51,6 @@ abstract final class CyberTypography {
 }
 
 abstract final class CyberTheme {
-  static ThemeData forBrightness(Brightness brightness) {
-    return brightness == Brightness.dark ? darkTheme : lightTheme;
-  }
-
   static ThemeData get lightTheme => _buildTheme(
     ColorScheme.fromSeed(
       seedColor: CyberColors.brandAccent,
@@ -73,24 +69,6 @@ abstract final class CyberTheme {
     ),
   );
 
-  static ThemeData get darkTheme => _buildTheme(
-    ColorScheme.fromSeed(
-      seedColor: CyberColors.brandAccent,
-      brightness: Brightness.dark,
-    ).copyWith(
-      primary: CyberColors.textOnDark,
-      onPrimary: CyberColors.textPrimary,
-      secondary: CyberColors.brandAccent,
-      onSecondary: CyberColors.onBrandAccent,
-      surface: const Color(0xFF16181B),
-      onSurface: CyberColors.textOnDark,
-      error: const Color(0xFFFFB4AB),
-      onError: const Color(0xFF690005),
-      outline: const Color(0xFF8F9196),
-      surfaceContainerHighest: const Color(0xFF292B2F),
-    ),
-  );
-
   static ThemeData _buildTheme(ColorScheme scheme) {
     final TextTheme textTheme = CyberTypography.textTheme.apply(
       bodyColor: scheme.onSurface,
@@ -104,9 +82,7 @@ abstract final class CyberTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: scheme.brightness == Brightness.light
-          ? CyberColors.background
-          : scheme.surface,
+      scaffoldBackgroundColor: CyberColors.background,
       textTheme: textTheme,
       cardTheme: CardThemeData(
         color: scheme.surface,
@@ -154,9 +130,7 @@ abstract final class CyberTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: scheme.brightness == Brightness.light
-            ? CyberColors.surface
-            : scheme.surfaceContainerHighest,
+        fillColor: CyberColors.surface,
         contentPadding: CyberSpacing.fieldPadding,
         border: border,
         enabledBorder: border,

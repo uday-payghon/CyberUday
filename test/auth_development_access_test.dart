@@ -13,7 +13,6 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: CyberTheme.lightTheme,
-        darkTheme: CyberTheme.darkTheme,
         home: const DemoDashboardScreen(),
       ),
     );

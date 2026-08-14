@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../core/cyber_design_system.dart';
 import '../services/auth_service.dart';
 import '../services/localization_service.dart';
-import '../services/theme_preference_service.dart';
 
 class ProfileIdentity {
   const ProfileIdentity({this.displayName, this.email, this.photoUrl});
@@ -32,19 +31,14 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ProfileIdentity account = identity ?? _identityFromUser(user);
-    final ThemeData productTheme = CyberTheme.forBrightness(
-      Theme.of(context).brightness,
-    );
+    final ThemeData productTheme = CyberTheme.lightTheme;
 
     return Theme(
       data: productTheme,
       child: ValueListenableBuilder<String>(
         valueListenable: LocalizationService.instance.currentLocale,
         builder: (context, locale, _) {
-          return ValueListenableBuilder<ThemeMode>(
-            valueListenable: ThemePreferenceService.instance.currentThemeMode,
-            builder: (context, themeMode, _) {
-              return Scaffold(
+          return Scaffold(
                 appBar: AppBar(
                   leading: Semantics(
                     label: LocalizationService.instance.translate(
@@ -64,7 +58,6 @@ class ProfileScreen extends StatelessWidget {
                       final List<Widget> groups = _buildGroups(
                         context: context,
                         locale: locale,
-                        themeMode: themeMode,
                       );
 
                       return SingleChildScrollView(
@@ -117,8 +110,6 @@ class ProfileScreen extends StatelessWidget {
                     },
                   ),
                 ),
-              );
-            },
           );
         },
       ),
@@ -128,7 +119,6 @@ class ProfileScreen extends StatelessWidget {
   List<Widget> _buildGroups({
     required BuildContext context,
     required String locale,
-    required ThemeMode themeMode,
   }) {
     return [
       CyberSettingsGroup(
@@ -149,17 +139,6 @@ class ProfileScreen extends StatelessWidget {
               value: CyberAccountPreferences.languageName(locale),
             ),
             onTap: () => CyberAccountPreferences.chooseLanguage(context),
-          ),
-          CyberSettingsRow(
-            icon: Icons.contrast_rounded,
-            title: LocalizationService.instance.translate('profile_appearance'),
-            subtitle: LocalizationService.instance.translate(
-              'profile_appearance_subtitle',
-            ),
-            trailing: _RowValue(
-              value: CyberAccountPreferences.appearanceName(themeMode),
-            ),
-            onTap: () => CyberAccountPreferences.chooseAppearance(context),
           ),
         ],
       ),

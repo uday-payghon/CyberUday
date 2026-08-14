@@ -51,9 +51,7 @@ class _AuthGateLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = CyberTheme.forBrightness(
-      Theme.of(context).brightness,
-    );
+    final ThemeData theme = CyberTheme.lightTheme;
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Container(

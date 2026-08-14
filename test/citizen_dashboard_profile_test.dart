@@ -121,12 +121,12 @@ void main() {
     expect(find.text('साइबर अपराध रिपोर्ट करें'), findsOneWidget);
   });
 
-  testWidgets('dashboard keeps the same hierarchy in dark mode', (
+  testWidgets('dashboard uses the product light theme', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: CyberTheme.darkTheme,
+        theme: CyberTheme.lightTheme,
         home: DashboardPage(
           user: null,
           onNavigate: (_) {},
@@ -148,21 +148,8 @@ void main() {
     expect(find.text('Profile'), findsOneWidget);
     expect(find.text('Cyber Uday citizen'), findsOneWidget);
     expect(find.text('Language'), findsOneWidget);
-    expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Appearance'), findsNothing);
     expect(find.text('Sign out'), findsOneWidget);
-  });
-
-  testWidgets('profile presents functional appearance choices', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(const MaterialApp(home: ProfileScreen()));
-
-    await tester.tap(find.text('Appearance'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Light'), findsOneWidget);
-    expect(find.text('Dark'), findsAtLeastNWidgets(1));
-    expect(find.text('System'), findsOneWidget);
   });
 
   testWidgets('account menu shows identity and opens the profile action', (
@@ -193,7 +180,7 @@ void main() {
     expect(find.text('Uday Payghon'), findsOneWidget);
     expect(find.text('uday@example.com'), findsOneWidget);
     expect(find.text('Language'), findsOneWidget);
-    expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Appearance'), findsNothing);
     expect(find.text('Sign out'), findsOneWidget);
 
     await tester.tap(find.text('Profile'));
@@ -201,18 +188,16 @@ void main() {
     expect(profileOpened, isTrue);
   });
 
-  testWidgets('profile account controls follow Hindi and Marathi locales', (
+  testWidgets('profile language control follows Hindi and Marathi locales', (
     WidgetTester tester,
   ) async {
     LocalizationService.instance.setLocale('hi');
     await tester.pumpWidget(const MaterialApp(home: ProfileScreen()));
     expect(find.text('भाषा'), findsOneWidget);
-    expect(find.text('दिखावट'), findsOneWidget);
 
     LocalizationService.instance.setLocale('mr');
     await tester.pumpWidget(const MaterialApp(home: ProfileScreen()));
     expect(find.text('भाषा'), findsOneWidget);
-    expect(find.text('दिसणे'), findsOneWidget);
   });
 
   testWidgets('profile asks for confirmation before sign out', (
@@ -275,27 +260,27 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('profile uses the same component hierarchy in dark mode', (
+  testWidgets('profile overrides an ambient dark theme with product light', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: CyberTheme.darkTheme,
+        theme: ThemeData.dark(),
         home: const ProfileScreen(
           identity: ProfileIdentity(
-            displayName: 'Dark Mode User',
-            email: 'dark@example.com',
+            displayName: 'Light Mode User',
+            email: 'light@example.com',
           ),
         ),
       ),
     );
 
-    expect(find.text('Dark Mode User'), findsOneWidget);
+    expect(find.text('Light Mode User'), findsOneWidget);
     expect(find.byType(CyberCard), findsOneWidget);
     expect(
       find.byWidgetPredicate(
         (widget) =>
-            widget is Theme && widget.data.brightness == Brightness.dark,
+            widget is Theme && widget.data.brightness == Brightness.light,
       ),
       findsAtLeastNWidgets(1),
     );

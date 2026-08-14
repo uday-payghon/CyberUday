@@ -8,6 +8,4 @@ import '../core/theme/cyber_theme.dart';
 /// breaking older screens while the app migrates to the shared system.
 class AppTheme {
   static ThemeData get lightTheme => CyberTheme.lightTheme;
-
-  static ThemeData get darkTheme => CyberTheme.darkTheme;
 }

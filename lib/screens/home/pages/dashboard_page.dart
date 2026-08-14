@@ -23,9 +23,7 @@ class DashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData productTheme = CyberTheme.forBrightness(
-      Theme.of(context).brightness,
-    );
+    final ThemeData productTheme = CyberTheme.lightTheme;
     return Theme(
       data: productTheme,
       child: Builder(

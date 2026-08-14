@@ -10,9 +10,7 @@ class DemoDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = CyberTheme.forBrightness(
-      Theme.of(context).brightness,
-    );
+    final ThemeData theme = CyberTheme.lightTheme;
 
     return ValueListenableBuilder<String>(
       valueListenable: LocalizationService.instance.currentLocale,

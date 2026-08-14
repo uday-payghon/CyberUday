@@ -12,8 +12,9 @@ import 'screens/splash_screen.dart';
 import 'screens/share_to_scan_screen.dart';
 import 'services/incoming_share_service.dart';
 import 'services/localization_service.dart';
-import 'services/theme_preference_service.dart';
 import 'theme/app_theme.dart';
+import 'core/cyber_branding.dart';
+import 'services/browser_title.dart';
 import 'services/url_threat_analysis_service.dart';
 
 Future<void> main() async {
@@ -21,8 +22,8 @@ Future<void> main() async {
   await PublicSuffixDomainParser.initialize();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await AuthService.instance.initializePersistence();
-  await ThemePreferenceService.instance.load();
   await IncomingShareService.instance.initialize();
+  applyCyberUdayBrowserTitle();
   runApp(const CyberUApp());
 }
 
@@ -71,30 +72,24 @@ class _CyberUAppState extends State<CyberUApp> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: ThemePreferenceService.instance.currentThemeMode,
-      builder: (context, themeMode, _) {
-        return ValueListenableBuilder<String>(
-          valueListenable: LocalizationService.instance.currentLocale,
-          builder: (context, localeCode, child) {
+    return ValueListenableBuilder<String>(
+      valueListenable: LocalizationService.instance.currentLocale,
+      builder: (context, localeCode, child) {
             final bool isSupported = AppLocalizations.supportedLocales.any(
               (locale) => locale.languageCode == localeCode,
             );
-            return MaterialApp(
-              navigatorKey: _navigatorKey,
-              title: 'Cyber Uday – A Digital Bodyguard',
-              debugShowCheckedModeBanner: false,
-              theme: AppTheme.lightTheme,
-              darkTheme: AppTheme.darkTheme,
-              themeMode: themeMode,
-              locale: isSupported ? Locale(localeCode) : const Locale('en'),
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              builder: (context, child) =>
-                  CyberAmbientPointer(child: child ?? const SizedBox.shrink()),
-              home: const SplashScreen(),
-            );
-          },
+        return MaterialApp(
+          navigatorKey: _navigatorKey,
+          title: cyberUdayBrowserTitle,
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          themeMode: ThemeMode.light,
+          locale: isSupported ? Locale(localeCode) : const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          builder: (context, child) =>
+              CyberAmbientPointer(child: child ?? const SizedBox.shrink()),
+          home: const SplashScreen(),
         );
       },
     );

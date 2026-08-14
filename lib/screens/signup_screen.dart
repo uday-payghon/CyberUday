@@ -85,9 +85,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       valueListenable: LocalizationService.instance.currentLocale,
       builder: (BuildContext context, String localeCode, Widget? child) {
         final AppLocalizations localizations = appLocalizationsFor(localeCode);
-        final ThemeData authTheme = CyberTheme.forBrightness(
-          Theme.of(context).brightness,
-        );
+        final ThemeData authTheme = CyberTheme.lightTheme;
         return Theme(
           data: authTheme,
           child: Scaffold(
