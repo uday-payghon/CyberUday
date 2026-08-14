@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import '../models/incoming_share_payload.dart';
 import '../services/pdf_service.dart';
 import '../services/localization_service.dart';
+import '../services/threat_analysis_engine.dart';
 
 class AiChatbot extends StatefulWidget {
   const AiChatbot({super.key});
@@ -16,6 +18,7 @@ class _AiChatbotState extends State<AiChatbot> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<Map<String, String>> _messages = [];
+  final ThreatAnalysisEngine _urlAnalysisEngine = const ThreatAnalysisEngine();
   late final GenerativeModel _model;
   late final ChatSession _chat;
   bool _isLoading = false;
@@ -154,6 +157,18 @@ class _AiChatbotState extends State<AiChatbot> {
     _controller.clear();
     _scrollToBottom();
 
+    final List<String> urls = IncomingSharePayload(
+      id: 'assistant-url-preview',
+      receivedAt: DateTime.now(),
+      text: text,
+      attachments: const <IncomingShareAttachment>[],
+      sourceApplication: 'Cyber Uday Assistant',
+    ).urls;
+    if (urls.isNotEmpty) {
+      await _analyzeSubmittedUrl(urls.first, text);
+      return;
+    }
+
     try {
       final response = await _chat
           .sendMessage(Content.text(text))
@@ -178,6 +193,25 @@ class _AiChatbotState extends State<AiChatbot> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  Future<void> _analyzeSubmittedUrl(String url, String message) async {
+    final ThreatAnalysisRun run = await _urlAnalysisEngine.analyze(
+      IncomingSharePayload.fromManualUrl(url, note: message),
+    );
+    final String evidence = run.analysis.indicators.isEmpty
+        ? 'No local warning indicators were found.'
+        : run.analysis.indicators.take(3).join(' ');
+    final String response =
+        '${run.analysis.title}. ${run.analysis.message} '
+        '$evidence Threat intelligence and redirect checks are currently unavailable, so this is not a safety guarantee.';
+    if (!mounted) return;
+    setState(() {
+      _messages.add(<String, String>{'role': 'bot', 'text': response});
+      _isLoading = false;
+    });
+    _speak(response);
+    _scrollToBottom();
   }
 
   @override

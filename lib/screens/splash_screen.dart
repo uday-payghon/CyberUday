@@ -3,10 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../core/cyber_design_system.dart';
+import '../models/incoming_share_payload.dart';
+import '../services/incoming_share_service.dart';
 import '../services/launch_flow_service.dart';
 import '../services/localization_service.dart';
 import 'auth_gate.dart';
 import 'language_selection_screen.dart';
+import 'share_to_scan_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -36,11 +39,16 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _continueFromSplash() async {
-    final LaunchDestination destination = await LaunchFlowService.instance
-        .resolve();
+    final IncomingSharePayload? sharedPayload = IncomingShareService.instance
+        .takeLaunchPayload();
+    final LaunchDestination? destination = sharedPayload == null
+        ? await LaunchFlowService.instance.resolve()
+        : null;
     if (!mounted) return;
 
-    final Widget nextScreen = destination == LaunchDestination.languageSelection
+    final Widget nextScreen = sharedPayload != null
+        ? ShareToScanScreen(payload: sharedPayload)
+        : destination == LaunchDestination.languageSelection
         ? const LanguageSelectionScreen()
         : const AuthGate();
 
@@ -52,6 +60,9 @@ class _SplashScreenState extends State<SplashScreen>
         },
       ),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      IncomingShareService.instance.enableLiveRouting();
+    });
   }
 
   @override

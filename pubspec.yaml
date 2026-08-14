@@ -29,6 +29,11 @@ dependencies:
   speech_to_text: ^7.0.0
   http: ^1.6.0
   shared_preferences: ^2.5.5
+  file_picker: ^8.1.2
+  crypto: ^3.0.6
+  public_suffix: ^3.0.0
+  google_mlkit_text_recognition: ^0.16.0
+  google_mlkit_barcode_scanning: ^0.15.0
 
 dev_dependencies:
   flutter_test:
@@ -40,3 +45,4 @@ flutter:
   generate: true
   assets:
     - assets/cyber_uday_mark.png
+    - assets/public_suffix_list.dat
