@@ -39,6 +39,23 @@
   <link rel="manifest" href="manifest.json">
 
   <title>Cyber Uday – A Digital Bodyguard</title>
+  <script>
+    (() => {
+      const productTitle = 'Cyber Uday – A Digital Bodyguard';
+      const applyProductTitle = () => {
+        if (document.title !== productTitle) {
+          document.title = productTitle;
+        }
+      };
+
+      applyProductTitle();
+      new MutationObserver(applyProductTitle).observe(document.head, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+    })();
+  </script>
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
