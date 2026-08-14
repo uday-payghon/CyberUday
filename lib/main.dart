@@ -23,7 +23,6 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await AuthService.instance.initializePersistence();
   await IncomingShareService.instance.initialize();
-  applyCyberUdayBrowserTitle();
   runApp(const CyberUApp());
 }
 
@@ -42,6 +41,9 @@ class _CyberUAppState extends State<CyberUApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      applyCyberUdayBrowserTitle();
+    });
     _liveShareSubscription = IncomingShareService.instance.liveShares.listen(
       _presentLiveShare,
     );
@@ -75,9 +77,9 @@ class _CyberUAppState extends State<CyberUApp> {
     return ValueListenableBuilder<String>(
       valueListenable: LocalizationService.instance.currentLocale,
       builder: (context, localeCode, child) {
-            final bool isSupported = AppLocalizations.supportedLocales.any(
-              (locale) => locale.languageCode == localeCode,
-            );
+        final bool isSupported = AppLocalizations.supportedLocales.any(
+          (locale) => locale.languageCode == localeCode,
+        );
         return MaterialApp(
           navigatorKey: _navigatorKey,
           title: cyberUdayBrowserTitle,
