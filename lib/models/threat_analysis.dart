@@ -168,6 +168,11 @@ class ThreatFeatures {
     required this.suspiciousFileType,
     required this.knownThreat,
     required this.unknownRisk,
+    this.activeContentIndicator = false,
+    this.embeddedFileIndicator = false,
+    this.launchActionIndicator = false,
+    this.javascriptIndicator = false,
+    this.documentAnalysisIncomplete = false,
   });
 
   final bool suspiciousDomain;
@@ -179,6 +184,11 @@ class ThreatFeatures {
   final bool suspiciousFileType;
   final bool knownThreat;
   final bool unknownRisk;
+  final bool activeContentIndicator;
+  final bool embeddedFileIndicator;
+  final bool launchActionIndicator;
+  final bool javascriptIndicator;
+  final bool documentAnalysisIncomplete;
 }
 
 class ThreatAnalysisResult {

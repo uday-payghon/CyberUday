@@ -3,6 +3,7 @@ import 'image_evidence_extractor.dart';
 import 'image_evidence_models.dart';
 import 'quarantine_storage.dart';
 import 'url_threat_analysis_service.dart';
+import 'document_intelligence.dart';
 
 enum ShareThreatRisk { safe, suspicious, highRisk, unsupported, error }
 
@@ -10,6 +11,7 @@ enum ShareAnalysisStatus {
   safe,
   suspicious,
   highRisk,
+  partial,
   analysisUnavailable,
   error,
 }
@@ -55,6 +57,7 @@ class ShareThreatAnalysisService {
   const ShareThreatAnalysisService({
     this.analyzers = _defaultAnalyzers,
     this.imageAnalyzer = const ImageThreatAnalyzer(),
+    this.documentAnalyzer = const DocumentAnalyzer(),
   });
 
   static const List<ShareAnalyzer> _defaultAnalyzers = <ShareAnalyzer>[
@@ -70,6 +73,7 @@ class ShareThreatAnalysisService {
 
   final List<ShareAnalyzer> analyzers;
   final ImageThreatAnalyzer imageAnalyzer;
+  final DocumentAnalyzer documentAnalyzer;
 
   Future<ShareThreatAnalysis> analyzeAsync(
     IncomingSharePayload payload, {
@@ -78,6 +82,11 @@ class ShareThreatAnalysisService {
     if (payload.primaryType == IncomingShareContentType.image &&
         quarantine != null) {
       return imageAnalyzer.analyze(payload, quarantine);
+    }
+    if ((payload.primaryType == IncomingShareContentType.pdf ||
+            payload.primaryType == IncomingShareContentType.document) &&
+        quarantine != null) {
+      return documentAnalyzer.analyzeAsync(payload, quarantine);
     }
     return analyze(payload);
   }
@@ -483,7 +492,15 @@ bool _containsWholeTerm(String value, String term) => RegExp(
 ).hasMatch(value);
 
 class DocumentAnalyzer implements ShareAnalyzer {
-  const DocumentAnalyzer();
+  const DocumentAnalyzer({
+    this.intelligence = const LocalDocumentIntelligence(),
+    this.urlAnalyzer = const UrlAnalyzer(),
+    this.textAnalyzer = const TextThreatAnalyzer(),
+  });
+
+  final DocumentIntelligence intelligence;
+  final UrlAnalyzer urlAnalyzer;
+  final TextThreatAnalyzer textAnalyzer;
 
   @override
   String get name => 'Document Safety Intake';
@@ -500,6 +517,137 @@ class DocumentAnalyzer implements ShareAnalyzer {
     payload.primaryType.label,
     'Metadata, text extraction, embedded URL, and document-structure inspection can be added through the isolated analyzer gateway.',
   );
+
+  Future<ShareThreatAnalysis> analyzeAsync(
+    IncomingSharePayload payload,
+    QuarantineRecord quarantine,
+  ) async {
+    final Map<int, QuarantinedContent> contentByIndex =
+        <int, QuarantinedContent>{
+          for (final QuarantinedContent content in quarantine.contents)
+            content.attachmentIndex: content,
+        };
+    final Map<String, List<String>> evidence = <String, List<String>>{};
+    final List<String> indicators = <String>[];
+    final List<String> recommendations = <String>[
+      'Do not open links or launch attachments from this document.',
+      'Do not provide passwords, OTPs, or banking details in response to it.',
+      'Verify the sender independently before taking action.',
+    ];
+    bool hasUnknownResult = false;
+    bool hasPartialResult = false;
+    bool hasThreatIndicator = false;
+    int inspectedDocuments = 0;
+
+    for (int index = 0; index < payload.attachments.length; index++) {
+      final IncomingShareAttachment attachment = payload.attachments[index];
+      if (attachment.contentType != IncomingShareContentType.pdf &&
+          attachment.contentType != IncomingShareContentType.document) {
+        continue;
+      }
+      inspectedDocuments++;
+      final QuarantinedContent? content = contentByIndex[index];
+      if (content == null) {
+        hasUnknownResult = true;
+        _addEvidence(
+          evidence,
+          'PDF_ANALYSIS_STATUS',
+          'DOCUMENT_SOURCE_UNAVAILABLE: no local quarantine copy was available.',
+        );
+        continue;
+      }
+      final DocumentIntelligenceResult document = await intelligence.analyze(
+        reference: content.reference,
+        fileName: attachment.displayName,
+        mimeType: attachment.mimeType,
+      );
+      _mergeEvidence(evidence, document.evidence);
+      hasUnknownResult =
+          hasUnknownResult ||
+          document.status == DocumentIntelligenceStatus.unknown ||
+          document.status == DocumentIntelligenceStatus.unsupported;
+      hasPartialResult =
+          hasPartialResult ||
+          document.status == DocumentIntelligenceStatus.partial;
+      indicators.addAll(document.indicators);
+
+      final String? extractedText = document.extractedText?.trim();
+      if (extractedText != null && extractedText.isNotEmpty) {
+        final ShareThreatAnalysis textResult = textAnalyzer.analyze(
+          IncomingSharePayload(
+            id: '${payload.id}-document-text-$index',
+            receivedAt: payload.receivedAt,
+            text: extractedText,
+            attachments: const <IncomingShareAttachment>[],
+            sourceApplication: 'Local document text extraction',
+          ),
+        );
+        _addNestedIndicators(
+          textResult,
+          evidence.putIfAbsent('TEXT_ANALYSIS', () => <String>[]),
+          indicators,
+        );
+        hasThreatIndicator =
+            hasThreatIndicator || textResult.indicators.any(_isThreatIndicator);
+      }
+
+      for (final String url in document.extractedUrls) {
+        final ShareThreatAnalysis urlResult = urlAnalyzer.analyze(
+          IncomingSharePayload.fromManualUrl(url, note: extractedText),
+        );
+        _addEvidence(evidence, 'EXTRACTED_URLS', url);
+        _addNestedIndicators(
+          urlResult,
+          evidence.putIfAbsent('URL_ANALYSIS', () => <String>[]),
+          indicators,
+        );
+        hasThreatIndicator =
+            hasThreatIndicator || urlResult.indicators.any(_isThreatIndicator);
+      }
+      final List<String> activeIndicators = <String>[
+        for (final String item in document.indicators)
+          if (_isActiveContentIndicator(item)) item,
+      ];
+      hasThreatIndicator = hasThreatIndicator || activeIndicators.isNotEmpty;
+    }
+
+    if (inspectedDocuments == 0 ||
+        hasUnknownResult ||
+        (hasPartialResult && !hasThreatIndicator)) {
+      return ShareThreatAnalysis(
+        risk: ShareThreatRisk.unsupported,
+        status: ShareAnalysisStatus.analysisUnavailable,
+        title: 'Document analysis is inconclusive',
+        message:
+            'Cyber Uday could not establish a reliable conclusion from this document. It was not opened, executed, or sent to external AI.',
+        indicators: List<String>.unmodifiable(<String>[
+          ...indicators,
+          'INCOMPLETE_ANALYSIS: unknown or unsupported document evidence is not treated as safe.',
+        ]),
+        recommendations: recommendations,
+        analyzerName: name,
+        structuredEvidence: _freezeEvidence(evidence),
+      );
+    }
+
+    final ShareThreatAnalysis result = _riskResult(
+      analyzerName: name,
+      indicators: indicators.where(_isThreatIndicator).toList(),
+      suspiciousTitle: 'This document contains warning signs',
+      safeMessage:
+          'No common warning signs were found in the locally extracted document evidence. This does not prove that the document or sender is safe.',
+    );
+    return ShareThreatAnalysis(
+      risk: result.risk,
+      status: hasPartialResult ? ShareAnalysisStatus.partial : result.status,
+      title: result.title,
+      message: result.message,
+      indicators: result.indicators,
+      recommendations: <String>[...result.recommendations, ...recommendations],
+      analyzerName: result.analyzerName,
+      structuredEvidence: _freezeEvidence(evidence),
+    );
+  }
 }
 
 class ApkAnalyzer implements ShareAnalyzer {
@@ -621,6 +769,50 @@ ShareThreatAnalysis _fileAnalysis(
   ],
   analyzerName: analyzerName,
 );
+
+void _mergeEvidence(
+  Map<String, List<String>> destination,
+  Map<String, List<String>> source,
+) {
+  for (final MapEntry<String, List<String>> entry in source.entries) {
+    destination.putIfAbsent(entry.key, () => <String>[]).addAll(entry.value);
+  }
+}
+
+void _addEvidence(
+  Map<String, List<String>> evidence,
+  String category,
+  String value,
+) {
+  evidence.putIfAbsent(category, () => <String>[]).add(value);
+}
+
+bool _isThreatIndicator(String value) {
+  final String candidate = value.toLowerCase();
+  const List<String> analysisOnly = <String>[
+    'pdf_analysis_',
+    'incomplete_analysis',
+    'encrypted_document',
+    'pdf_resource_limit',
+    'document_source_unavailable',
+    'unsupported_format',
+    'empty_document',
+    'text_extraction_unavailable',
+    'binary_document',
+  ];
+  if (analysisOnly.any(candidate.startsWith)) return false;
+  return value.trim().isNotEmpty;
+}
+
+bool _isActiveContentIndicator(String value) {
+  final String candidate = value.toLowerCase();
+  return candidate.contains('javascript_indicator') ||
+      candidate.contains('embedded_file_indicator') ||
+      candidate.contains('launch_action_indicator') ||
+      candidate.contains('automatic_action_indicator') ||
+      candidate.contains('form_indicator') ||
+      candidate.contains('annotation_indicator');
+}
 
 ShareThreatAnalysis _riskResult({
   required String analyzerName,

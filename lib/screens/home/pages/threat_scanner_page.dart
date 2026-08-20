@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../core/cyber_design_system.dart';
 import '../../../models/incoming_share_payload.dart';
 import '../../../models/threat_analysis.dart';
+import '../../../models/cyber_risk_signal.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/firebase_service.dart';
 import '../../../services/localization_service.dart';
@@ -454,35 +455,31 @@ class _ShareAnalysisCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final CyberRiskSignal signal = CyberRiskSignal.fromResult(result);
     final (
       CyberCardVariant variant,
       CyberStatus status,
       String statusLabel,
-    ) = switch (analysis.risk) {
-      ShareThreatRisk.safe => (
+    ) = switch (signal.level) {
+      CyberRiskLevel.low => (
         CyberCardVariant.status,
         CyberStatus.safe,
-        'Preliminary check complete',
+        signal.label,
       ),
-      ShareThreatRisk.suspicious => (
+      CyberRiskLevel.caution => (
         CyberCardVariant.standard,
         CyberStatus.warning,
-        'Suspicious',
+        signal.label,
       ),
-      ShareThreatRisk.highRisk => (
+      CyberRiskLevel.high || CyberRiskLevel.critical => (
         CyberCardVariant.criticalAlert,
         CyberStatus.danger,
-        'High risk',
+        signal.label,
       ),
-      ShareThreatRisk.unsupported => (
+      CyberRiskLevel.unknown => (
         CyberCardVariant.standard,
-        CyberStatus.warning,
-        'Analysis unavailable',
-      ),
-      ShareThreatRisk.error => (
-        CyberCardVariant.criticalAlert,
-        CyberStatus.danger,
-        'Could not analyze',
+        CyberStatus.neutral,
+        signal.label,
       ),
     };
 
@@ -493,6 +490,23 @@ class _ShareAnalysisCard extends StatelessWidget {
         children: [
           CyberStatusIndicator(status: status, label: statusLabel),
           CyberSpacing.vertical(CyberSpacing.sm),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(signal.label, style: theme.textTheme.headlineSmall),
+              ),
+              Text(
+                '${signal.score} / 100',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+                ),
+              ),
+            ],
+          ),
+          CyberSpacing.vertical(CyberSpacing.xs),
+          Text(signal.explanation, style: theme.textTheme.bodyMedium),
+          CyberSpacing.vertical(CyberSpacing.xs),
           Text(analysis.title, style: theme.textTheme.titleLarge),
           CyberSpacing.vertical(CyberSpacing.xs),
           Text(analysis.message, style: theme.textTheme.bodyMedium),
@@ -505,13 +519,20 @@ class _ShareAnalysisCard extends StatelessWidget {
           ),
           CyberSpacing.vertical(CyberSpacing.xs),
           Text(
-            'Risk: ${result.verdict.name.toUpperCase()}  •  Score: ${result.riskScore}/100  •  ${result.durationMs} ms',
+            'Initial analysis • ${result.durationMs} ms',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.62),
             ),
           ),
           if (analysis.indicators.isNotEmpty) ...[
             CyberSpacing.vertical(CyberSpacing.md),
+            Text(
+              result.verdict == ThreatVerdict.unknown
+                  ? 'WHY THIS RESULT'
+                  : 'WHY WE FLAGGED IT',
+              style: theme.textTheme.titleSmall,
+            ),
+            CyberSpacing.vertical(CyberSpacing.xs),
             for (final String indicator in analysis.indicators)
               Padding(
                 padding: const EdgeInsets.only(bottom: CyberSpacing.xs),
@@ -538,7 +559,7 @@ class _ShareAnalysisCard extends StatelessWidget {
               child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 title: Text(
-                  'Technical evidence',
+                  'View technical analysis',
                   style: theme.textTheme.titleSmall,
                 ),
                 children: [
@@ -572,7 +593,7 @@ class _ShareAnalysisCard extends StatelessWidget {
           ],
           if (analysis.recommendations.isNotEmpty) ...[
             CyberSpacing.vertical(CyberSpacing.sm),
-            Text('Recommended actions', style: theme.textTheme.titleSmall),
+            Text('WHAT YOU SHOULD DO', style: theme.textTheme.titleSmall),
             CyberSpacing.vertical(CyberSpacing.xs),
             for (final String recommendation in analysis.recommendations)
               Padding(
@@ -595,6 +616,13 @@ class _ShareAnalysisCard extends StatelessWidget {
                   ],
                 ),
               ),
+            CyberSpacing.vertical(CyberSpacing.sm),
+            Text(
+              signal.recommendedAction,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
           if (kDebugMode)
             Material(

@@ -7,6 +7,9 @@ class SecurityPipelineConfig {
     this.maxArchiveDepth = 1,
     this.maxImageDimension = 4096,
     this.maxImagePixels = 16 * 1024 * 1024,
+    this.maxPdfPages = 500,
+    this.maxPdfObjects = 100000,
+    this.maxDocumentTextCharacters = 20000,
     this.maxAnalysisTime = const Duration(seconds: 60),
     this.quarantineRetention = const Duration(minutes: 15),
   });
@@ -18,6 +21,9 @@ class SecurityPipelineConfig {
   final int maxArchiveDepth;
   final int maxImageDimension;
   final int maxImagePixels;
+  final int maxPdfPages;
+  final int maxPdfObjects;
+  final int maxDocumentTextCharacters;
   final Duration maxAnalysisTime;
   final Duration quarantineRetention;
 }

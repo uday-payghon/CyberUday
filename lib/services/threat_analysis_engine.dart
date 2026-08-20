@@ -460,6 +460,20 @@ class ThreatAnalysisOrchestrator {
       unknownRisk:
           analysis.status != ShareAnalysisStatus.safe &&
           analysis.status == ShareAnalysisStatus.analysisUnavailable,
+      activeContentIndicator:
+          indicators.contains('active_content_indicator') ||
+          indicators.contains('javascript_indicator') ||
+          indicators.contains('launch_action_indicator') ||
+          indicators.contains('automatic_action_indicator'),
+      embeddedFileIndicator: indicators.contains('embedded_file_indicator'),
+      launchActionIndicator: indicators.contains('launch_action_indicator'),
+      javascriptIndicator: indicators.contains('javascript_indicator'),
+      documentAnalysisIncomplete:
+          analysis.structuredEvidence['PDF_ANALYSIS_STATUS']?.any(
+            (String value) =>
+                value.contains('PARTIAL') || value.contains('UNKNOWN'),
+          ) ??
+          false,
     );
   }
 }
@@ -497,6 +511,24 @@ class ThreatFusionEngine {
         0.82,
         ThreatResultStatus.complete,
       ),
+      ShareAnalysisStatus.partial => (
+        analysis.risk == ShareThreatRisk.highRisk
+            ? ThreatVerdict.high
+            : analysis.risk == ShareThreatRisk.suspicious
+            ? ThreatVerdict.medium
+            : ThreatVerdict.unknown,
+        analysis.risk == ShareThreatRisk.highRisk
+            ? 85
+            : analysis.risk == ShareThreatRisk.suspicious
+            ? 55
+            : 0,
+        analysis.risk == ShareThreatRisk.highRisk
+            ? 0.72
+            : analysis.risk == ShareThreatRisk.suspicious
+            ? 0.58
+            : 0,
+        ThreatResultStatus.partial,
+      ),
       ShareAnalysisStatus.analysisUnavailable => (
         ThreatVerdict.unknown,
         0,
@@ -510,12 +542,40 @@ class ThreatFusionEngine {
         ThreatResultStatus.error,
       ),
     };
+    final int strongSignalCount = <bool>[
+      features.suspiciousUrl,
+      features.credentialTheftIndicator,
+      features.activeContentIndicator,
+      features.embeddedFileIndicator,
+      features.launchActionIndicator,
+      features.javascriptIndicator,
+    ].where((bool value) => value).length;
+    final int signalBonus = features.unknownRisk
+        ? 0
+        : (features.activeContentIndicator ? 8 : 0) +
+              (features.embeddedFileIndicator ? 8 : 0) +
+              (features.launchActionIndicator ? 8 : 0) +
+              (features.javascriptIndicator ? 6 : 0) +
+              (features.suspiciousUrl ? 6 : 0) +
+              (features.credentialTheftIndicator ? 6 : 0);
+    final int adjustedScore = (score + signalBonus).clamp(0, 100);
+    final bool justifiedCritical =
+        status == ThreatResultStatus.complete &&
+        strongSignalCount >= 3 &&
+        adjustedScore >= 95;
+    final ThreatVerdict adjustedVerdict = justifiedCritical
+        ? ThreatVerdict.critical
+        : verdict;
     return ThreatAnalysisResult(
       requestId: request.requestId,
       status: status,
-      verdict: verdict,
-      riskScore: score,
-      confidence: confidence,
+      verdict: adjustedVerdict,
+      riskScore: adjustedScore,
+      confidence: adjustedVerdict == ThreatVerdict.unknown
+          ? 0
+          : justifiedCritical
+          ? 0.9
+          : confidence,
       detectedThreats: List<String>.unmodifiable(analysis.indicators),
       evidence: List<String>.unmodifiable(<String>[
         'Analyzer: ${analysis.analyzerName}',
