@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -195,6 +196,8 @@ class FileTypeInspector {
     int extractedSize = 0;
     bool hasManifest = false;
     bool hasDex = false;
+    bool manifestSignatureValid = false;
+    bool dexSignatureValid = false;
     bool containsNestedArchive = false;
     for (int index = 0; index < fileCount; index++) {
       if (stopwatch.elapsed > config.maxAnalysisTime) {
@@ -234,6 +237,37 @@ class FileTypeInspector {
       }
       hasManifest = hasManifest || name == 'AndroidManifest.xml';
       hasDex = hasDex || name == 'classes.dex';
+      if (expectedApk &&
+          (name == 'AndroidManifest.xml' || name == 'classes.dex')) {
+        final int compressionMethod = _u16(bytes, cursor + 10);
+        final int compressedSize = _u32(bytes, cursor + 20);
+        final int localHeaderOffset = _u32(bytes, cursor + 42);
+        final Uint8List? content = _readArchiveEntry(
+          bytes,
+          localHeaderOffset: localHeaderOffset,
+          compressedSize: compressedSize,
+          uncompressedSize: uncompressedSize,
+          compressionMethod: compressionMethod,
+          maxBytes: name == 'AndroidManifest.xml'
+              ? config.maxApkManifestBytes
+              : config.maxApkDexBytes,
+        );
+        if (name == 'AndroidManifest.xml') {
+          manifestSignatureValid = _startsWith(content, const <int>[
+            0x03,
+            0x00,
+            0x08,
+            0x00,
+          ]);
+        } else {
+          dexSignatureValid = _startsWith(content, const <int>[
+            0x64,
+            0x65,
+            0x78,
+            0x0a,
+          ]);
+        }
+      }
       containsNestedArchive = containsNestedArchive || _isArchiveName(name);
       cursor = next;
     }
@@ -248,12 +282,21 @@ class FileTypeInspector {
         fileCount,
         extractedSize,
         2,
-        expectedApk && hasManifest && hasDex,
+        expectedApk &&
+            hasManifest &&
+            hasDex &&
+            manifestSignatureValid &&
+            dexSignatureValid,
       );
     }
     if (expectedApk && !(hasManifest && hasDex)) {
       return _ArchiveCheck.invalid(
         'The ZIP does not contain the minimum expected Android APK entries.',
+      );
+    }
+    if (expectedApk && !(manifestSignatureValid && dexSignatureValid)) {
+      return _ArchiveCheck.invalid(
+        'The ZIP contains APK-named entries, but their AndroidManifest.xml or classes.dex signatures are invalid.',
       );
     }
     return _ArchiveCheck.valid(
@@ -266,6 +309,71 @@ class FileTypeInspector {
       expectedApk,
     );
   }
+}
+
+bool _startsWith(Uint8List? bytes, List<int> expected) =>
+    bytes != null &&
+    bytes.length >= expected.length &&
+    expected.asMap().entries.every((entry) => bytes[entry.key] == entry.value);
+
+Uint8List? _readArchiveEntry(
+  Uint8List bytes, {
+  required int localHeaderOffset,
+  required int compressedSize,
+  required int uncompressedSize,
+  required int compressionMethod,
+  required int maxBytes,
+}) {
+  if (uncompressedSize > maxBytes ||
+      localHeaderOffset < 0 ||
+      localHeaderOffset + 30 > bytes.length) {
+    return null;
+  }
+  if (_u32(bytes, localHeaderOffset) != 0x04034b50) return null;
+  final int nameLength = _u16(bytes, localHeaderOffset + 26);
+  final int extraLength = _u16(bytes, localHeaderOffset + 28);
+  final int dataStart = localHeaderOffset + 30 + nameLength + extraLength;
+  final int dataEnd = dataStart + compressedSize;
+  if (dataStart < 0 || dataEnd > bytes.length) return null;
+  final Uint8List compressed = bytes.sublist(dataStart, dataEnd);
+  try {
+    if (compressionMethod == 0) {
+      return compressed.length == uncompressedSize ? compressed : null;
+    }
+    if (compressionMethod == 8) {
+      final _BoundedBytesSink output = _BoundedBytesSink(maxBytes);
+      final ByteConversionSink decoder = ZLibDecoder(
+        raw: true,
+      ).startChunkedConversion(output);
+      decoder
+        ..add(compressed)
+        ..close();
+      return output.bytes.length == uncompressedSize
+          ? Uint8List.fromList(output.bytes)
+          : null;
+    }
+  } on Object {
+    return null;
+  }
+  return null;
+}
+
+class _BoundedBytesSink implements Sink<List<int>> {
+  _BoundedBytesSink(this.maxBytes);
+
+  final int maxBytes;
+  final List<int> bytes = <int>[];
+
+  @override
+  void add(List<int> chunk) {
+    if (bytes.length > maxBytes - chunk.length) {
+      throw StateError('Bounded archive decompression limit exceeded.');
+    }
+    bytes.addAll(chunk);
+  }
+
+  @override
+  void close() {}
 }
 
 class _Signature {

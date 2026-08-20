@@ -216,6 +216,7 @@ class IncomingSharePayload {
     this.mimeType,
     this.sourceApplication,
     this.explicitUrls = const <String>[],
+    this.intakeError,
   });
 
   factory IncomingSharePayload.fromPlatformMap(Map<Object?, Object?> map) {
@@ -238,6 +239,7 @@ class IncomingSharePayload {
       mimeType: _trimmedOrNull(map['mimeType'] as String?),
       sourceApplication: _trimmedOrNull(map['sourceApplication'] as String?),
       attachments: attachments,
+      intakeError: map['intakeError'] as String?,
     );
   }
 
@@ -273,6 +275,7 @@ class IncomingSharePayload {
   final List<IncomingShareAttachment> attachments;
   final String? sourceApplication;
   final List<String> explicitUrls;
+  final String? intakeError;
 
   static final RegExp _urlExpression = RegExp(
     r'(?:(?:https?://)|(?:www\.))[\w.-]+(?:\.[\w.-]+)+(?:[^\s<>]*)?',

@@ -173,6 +173,14 @@ class ThreatFeatures {
     this.launchActionIndicator = false,
     this.javascriptIndicator = false,
     this.documentAnalysisIncomplete = false,
+    this.apkSecurityIndicator = false,
+    this.apkAccessibilityIndicator = false,
+    this.apkPersistenceIndicator = false,
+    this.apkPermissionCombinationIndicator = false,
+    this.apkDynamicCodeIndicator = false,
+    this.archiveExecutableIndicator = false,
+    this.archiveBombIndicator = false,
+    this.archiveNestedIndicator = false,
   });
 
   final bool suspiciousDomain;
@@ -189,6 +197,14 @@ class ThreatFeatures {
   final bool launchActionIndicator;
   final bool javascriptIndicator;
   final bool documentAnalysisIncomplete;
+  final bool apkSecurityIndicator;
+  final bool apkAccessibilityIndicator;
+  final bool apkPersistenceIndicator;
+  final bool apkPermissionCombinationIndicator;
+  final bool apkDynamicCodeIndicator;
+  final bool archiveExecutableIndicator;
+  final bool archiveBombIndicator;
+  final bool archiveNestedIndicator;
 }
 
 class ThreatAnalysisResult {

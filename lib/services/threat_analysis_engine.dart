@@ -444,7 +444,8 @@ class ThreatAnalysisOrchestrator {
       phishingIndicator:
           indicators.contains('phishing') || indicators.contains('credential'),
       suspiciousUrl:
-          request.url != null && analysis.risk != ShareThreatRisk.safe,
+          (request.url != null && analysis.risk != ShareThreatRisk.safe) ||
+          indicators.contains('apk_suspicious_url'),
       impersonationIndicator: indicators.contains('impersonat'),
       urgencyIndicator:
           indicators.contains('pressure') || indicators.contains('urgent'),
@@ -468,6 +469,35 @@ class ThreatAnalysisOrchestrator {
       embeddedFileIndicator: indicators.contains('embedded_file_indicator'),
       launchActionIndicator: indicators.contains('launch_action_indicator'),
       javascriptIndicator: indicators.contains('javascript_indicator'),
+      apkSecurityIndicator:
+          indicators.contains('apk_credential_string_indicator') ||
+          indicators.contains('apk_sms_indicator') ||
+          indicators.contains('apk_financial_string_indicator') ||
+          indicators.contains('apk_webview_indicator') ||
+          indicators.contains('apk_native_loading_indicator') ||
+          indicators.contains('apk_shell_execution_indicator'),
+      apkAccessibilityIndicator: indicators.contains(
+        'apk_accessibility_indicator',
+      ),
+      apkPersistenceIndicator: indicators.contains(
+        'apk_persistence_accessibility_indicator',
+      ),
+      apkPermissionCombinationIndicator:
+          indicators.contains('apk_permission_combination_indicator') ||
+          indicators.contains('apk_device_admin_network_indicator') ||
+          indicators.contains('apk_package_install_network_indicator'),
+      apkDynamicCodeIndicator: indicators.contains(
+        'apk_dynamic_code_indicator',
+      ),
+      archiveExecutableIndicator: indicators.contains(
+        'archive_executable_content_indicator',
+      ),
+      archiveBombIndicator: indicators.contains(
+        'archive_compression_ratio_indicator',
+      ),
+      archiveNestedIndicator: indicators.contains(
+        'archive_nested_archive_indicator',
+      ),
       documentAnalysisIncomplete:
           analysis.structuredEvidence['PDF_ANALYSIS_STATUS']?.any(
             (String value) =>
@@ -549,6 +579,14 @@ class ThreatFusionEngine {
       features.embeddedFileIndicator,
       features.launchActionIndicator,
       features.javascriptIndicator,
+      features.apkAccessibilityIndicator,
+      features.apkPersistenceIndicator,
+      features.apkPermissionCombinationIndicator,
+      features.apkDynamicCodeIndicator,
+      features.apkSecurityIndicator,
+      features.archiveExecutableIndicator,
+      features.archiveBombIndicator,
+      features.archiveNestedIndicator,
     ].where((bool value) => value).length;
     final int signalBonus = features.unknownRisk
         ? 0
@@ -557,7 +595,15 @@ class ThreatFusionEngine {
               (features.launchActionIndicator ? 8 : 0) +
               (features.javascriptIndicator ? 6 : 0) +
               (features.suspiciousUrl ? 6 : 0) +
-              (features.credentialTheftIndicator ? 6 : 0);
+              (features.credentialTheftIndicator ? 6 : 0) +
+              (features.apkSecurityIndicator ? 4 : 0) +
+              (features.apkAccessibilityIndicator ? 8 : 0) +
+              (features.apkPersistenceIndicator ? 8 : 0) +
+              (features.apkPermissionCombinationIndicator ? 8 : 0) +
+              (features.apkDynamicCodeIndicator ? 6 : 0) +
+              (features.archiveExecutableIndicator ? 8 : 0) +
+              (features.archiveBombIndicator ? 8 : 0) +
+              (features.archiveNestedIndicator ? 4 : 0);
     final int adjustedScore = (score + signalBonus).clamp(0, 100);
     final bool justifiedCritical =
         status == ThreatResultStatus.complete &&

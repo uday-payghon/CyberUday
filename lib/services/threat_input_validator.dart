@@ -30,6 +30,21 @@ class ThreatInputValidator {
   }) {
     final List<String> errors = <String>[];
     final List<String> warnings = <String>[];
+    if (payload.intakeError != null) {
+      errors.add(payload.intakeError!);
+    }
+    if (payload.attachments.length > config.maxSharedItemCount) {
+      errors.add('The shared item count exceeds the configured safety limit.');
+    }
+    final int aggregateSize = payload.attachments.fold<int>(
+      0,
+      (total, attachment) => total + (attachment.sizeBytes ?? 0),
+    );
+    if (aggregateSize > config.maxAggregateSharedSizeBytes) {
+      errors.add(
+        'The shared content exceeds the configured aggregate size limit.',
+      );
+    }
     if (payload.text == null && payload.attachments.isEmpty) {
       errors.add('The submitted input was empty.');
     }

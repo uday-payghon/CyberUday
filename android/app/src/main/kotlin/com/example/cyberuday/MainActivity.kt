@@ -19,6 +19,9 @@ class MainActivity : FlutterActivity() {
         private const val SHARE_CHANNEL = "cyberuday/incoming_share"
         private val MAX_METADATA_FILE_SIZE_BYTES =
             BuildConfig.CYBER_UDAY_MAX_FILE_SIZE_BYTES
+        private const val MAX_SHARE_ITEM_COUNT = 10
+        private val MAX_AGGREGATE_SHARED_SIZE_BYTES =
+            MAX_METADATA_FILE_SIZE_BYTES.toLong() * 2
     }
 
     private var eventSink: EventChannel.EventSink? = null
@@ -62,11 +65,32 @@ class MainActivity : FlutterActivity() {
             ?.trim()
             ?.takeIf { it.isNotEmpty() }
         val defaultMimeType = intent.type?.lowercase(Locale.ROOT).orEmpty()
-        val attachments = streamUris(intent).map { uri ->
+        val sharedUris = streamUris(intent)
+        val shareLimitError = if (sharedUris.size > MAX_SHARE_ITEM_COUNT) {
+            "This share contains more items than Cyber Uday can review safely at once."
+        } else {
+            null
+        }
+        val stagedAttachments = sharedUris.take(MAX_SHARE_ITEM_COUNT).map { uri ->
             attachmentMetadata(uri, defaultMimeType)
         }
+        val aggregateSizeBytes = stagedAttachments.fold(0L) { total, attachment ->
+            total + ((attachment["sizeBytes"] as? Long) ?: 0L)
+        }
+        val aggregateLimitError = if (aggregateSizeBytes > MAX_AGGREGATE_SHARED_SIZE_BYTES) {
+            "The combined share is larger than Cyber Uday can review safely at once."
+        } else {
+            null
+        }
+        val intakeError = shareLimitError ?: aggregateLimitError
+        val attachments = if (intakeError != null) {
+            discardStagedAttachments(stagedAttachments)
+            emptyList()
+        } else {
+            stagedAttachments
+        }
 
-        if (text == null && attachments.isEmpty()) {
+        if (text == null && attachments.isEmpty() && intakeError == null) {
             return
         }
 
@@ -77,6 +101,7 @@ class MainActivity : FlutterActivity() {
             "text" to text,
             "sourceApplication" to sourceApplication(intent),
             "items" to attachments,
+            "intakeError" to intakeError,
         )
         val sink = eventSink
         if (sink != null) {
@@ -169,6 +194,17 @@ class MainActivity : FlutterActivity() {
             "isAccessible" to (accessError == null && staged?.file != null),
             "error" to accessError,
         )
+    }
+
+    private fun discardStagedAttachments(attachments: List<Map<String, Any?>>) {
+        attachments.forEach { attachment ->
+            if (attachment["isTemporaryQuarantineSource"] != true) return@forEach
+            val uri = (attachment["uri"] as? String)?.let(Uri::parse) ?: return@forEach
+            if (uri.scheme != "file") return@forEach
+            runCatching {
+                uri.path?.let(::File)?.delete()
+            }
+        }
     }
 
     private fun stageForTemporaryQuarantine(uri: Uri, declaredSize: Long?): StagedContent {

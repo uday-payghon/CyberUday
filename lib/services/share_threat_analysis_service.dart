@@ -4,6 +4,8 @@ import 'image_evidence_models.dart';
 import 'quarantine_storage.dart';
 import 'url_threat_analysis_service.dart';
 import 'document_intelligence.dart';
+import 'apk_static_analysis.dart';
+import 'archive_static_analysis.dart';
 
 enum ShareThreatRisk { safe, suspicious, highRisk, unsupported, error }
 
@@ -58,6 +60,8 @@ class ShareThreatAnalysisService {
     this.analyzers = _defaultAnalyzers,
     this.imageAnalyzer = const ImageThreatAnalyzer(),
     this.documentAnalyzer = const DocumentAnalyzer(),
+    this.apkAnalyzer = const ApkAnalyzer(),
+    this.archiveAnalyzer = const ArchiveAnalyzer(),
   });
 
   static const List<ShareAnalyzer> _defaultAnalyzers = <ShareAnalyzer>[
@@ -74,6 +78,8 @@ class ShareThreatAnalysisService {
   final List<ShareAnalyzer> analyzers;
   final ImageThreatAnalyzer imageAnalyzer;
   final DocumentAnalyzer documentAnalyzer;
+  final ApkAnalyzer apkAnalyzer;
+  final ArchiveAnalyzer archiveAnalyzer;
 
   Future<ShareThreatAnalysis> analyzeAsync(
     IncomingSharePayload payload, {
@@ -87,6 +93,14 @@ class ShareThreatAnalysisService {
             payload.primaryType == IncomingShareContentType.document) &&
         quarantine != null) {
       return documentAnalyzer.analyzeAsync(payload, quarantine);
+    }
+    if (payload.primaryType == IncomingShareContentType.apk &&
+        quarantine != null) {
+      return apkAnalyzer.analyzeAsync(payload, quarantine);
+    }
+    if (payload.primaryType == IncomingShareContentType.archive &&
+        quarantine != null) {
+      return archiveAnalyzer.analyzeAsync(payload, quarantine);
     }
     return analyze(payload);
   }
@@ -651,7 +665,15 @@ class DocumentAnalyzer implements ShareAnalyzer {
 }
 
 class ApkAnalyzer implements ShareAnalyzer {
-  const ApkAnalyzer();
+  const ApkAnalyzer({
+    this.intelligence = const LocalApkStaticAnalyzer(),
+    this.urlAnalyzer = const UrlAnalyzer(),
+    this.textAnalyzer = const TextThreatAnalyzer(),
+  });
+
+  final ApkStaticAnalyzer intelligence;
+  final UrlAnalyzer urlAnalyzer;
+  final TextThreatAnalyzer textAnalyzer;
 
   @override
   String get name => 'APK Static Analysis Intake';
@@ -678,25 +700,271 @@ class ApkAnalyzer implements ShareAnalyzer {
     ],
     analyzerName: 'APK Static Analysis Intake',
   );
+
+  Future<ShareThreatAnalysis> analyzeAsync(
+    IncomingSharePayload payload,
+    QuarantineRecord quarantine,
+  ) async {
+    final Map<int, QuarantinedContent> contentByIndex =
+        <int, QuarantinedContent>{
+          for (final QuarantinedContent content in quarantine.contents)
+            content.attachmentIndex: content,
+        };
+    final Map<String, List<String>> evidence = <String, List<String>>{};
+    final List<String> threatIndicators = <String>[];
+    final List<String> recommendations = <String>[
+      'Do not install or open this APK.',
+      'Do not grant accessibility, overlay, device-admin, or install permissions unless independently verified.',
+      'Do not enter passwords, OTPs, banking details, or wallet recovery phrases into the application.',
+      'Verify the publisher and download source through a trusted channel.',
+    ];
+    bool hasUnknown = false;
+    bool hasPartial = false;
+    bool inspected = false;
+
+    for (int index = 0; index < payload.attachments.length; index++) {
+      final IncomingShareAttachment attachment = payload.attachments[index];
+      if (attachment.contentType != IncomingShareContentType.apk) continue;
+      inspected = true;
+      final QuarantinedContent? content = contentByIndex[index];
+      if (content == null) {
+        hasUnknown = true;
+        _addEvidence(evidence, 'APK_ANALYSIS_STATUS', 'APK_SOURCE_UNAVAILABLE');
+        continue;
+      }
+      final ApkStaticAnalysisResult result = await intelligence.analyze(
+        reference: content.reference,
+        fileName: attachment.displayName,
+        mimeType: attachment.mimeType,
+      );
+      _mergeEvidence(evidence, result.evidence);
+      hasUnknown = hasUnknown || result.status == ApkAnalysisStatus.unknown;
+      hasPartial = hasPartial || result.status == ApkAnalysisStatus.partial;
+      threatIndicators.addAll(result.indicators.where(_isApkThreatIndicator));
+
+      for (final String url in result.extractedUrls) {
+        final UrlThreatAnalysis urlResult = urlAnalyzer.urlAnalysis.analyze(
+          url,
+        );
+        _addEvidence(evidence, 'APK_URL_ANALYSIS', url);
+        _mergeEvidence(evidence, urlResult.localEvidence);
+        if (_urlHasWarning(urlResult)) {
+          threatIndicators.add('APK_SUSPICIOUS_URL: $url');
+        }
+      }
+      for (final String sample in result.textSamples.take(50)) {
+        final ShareThreatAnalysis textResult = textAnalyzer.analyze(
+          IncomingSharePayload(
+            id: '${payload.id}-apk-text-$index',
+            receivedAt: payload.receivedAt,
+            text: sample,
+            attachments: const <IncomingShareAttachment>[],
+            sourceApplication: 'Local APK string extraction',
+          ),
+        );
+        if (textResult.indicators.any(_isThreatIndicator)) {
+          threatIndicators.addAll(
+            textResult.indicators.map((item) => 'APK_TEXT: $item'),
+          );
+        }
+      }
+    }
+
+    if (!inspected || hasUnknown || (hasPartial && threatIndicators.isEmpty)) {
+      return ShareThreatAnalysis(
+        risk: ShareThreatRisk.unsupported,
+        status: ShareAnalysisStatus.analysisUnavailable,
+        title: 'APK analysis is inconclusive',
+        message:
+            'Cyber Uday completed only a partial static review. The APK was not installed, launched, or executed, and this result is not a safe verdict.',
+        indicators: List<String>.unmodifiable(<String>[
+          ...threatIndicators,
+          'APK_ANALYSIS_INCOMPLETE: insufficient evidence is not treated as safe.',
+        ]),
+        recommendations: recommendations,
+        analyzerName: name,
+        structuredEvidence: _freezeEvidence(evidence),
+      );
+    }
+
+    final ShareThreatAnalysis result = _riskResult(
+      analyzerName: name,
+      indicators: threatIndicators,
+      suspiciousTitle: 'This APK contains warning signs',
+      safeMessage:
+          'No common warning signs were found during this bounded static review. This does not prove that the APK is safe.',
+    );
+    return ShareThreatAnalysis(
+      risk: result.risk,
+      status: hasPartial ? ShareAnalysisStatus.partial : result.status,
+      title: result.title,
+      message: result.message,
+      indicators: result.indicators,
+      recommendations: <String>[...result.recommendations, ...recommendations],
+      analyzerName: result.analyzerName,
+      structuredEvidence: _freezeEvidence(evidence),
+    );
+  }
 }
 
 class ArchiveAnalyzer implements ShareAnalyzer {
-  const ArchiveAnalyzer();
+  const ArchiveAnalyzer({
+    this.intelligence = const LocalArchiveStaticAnalyzer(),
+    this.urlAnalyzer = const UrlAnalyzer(),
+    this.textAnalyzer = const TextThreatAnalyzer(),
+  });
+
+  final ArchiveStaticAnalyzer intelligence;
+  final UrlAnalyzer urlAnalyzer;
+  final TextThreatAnalyzer textAnalyzer;
 
   @override
-  String get name => 'Archive Safety Intake';
+  String get name => 'Archive Static Analysis Intake';
 
   @override
   bool canAnalyze(IncomingSharePayload payload) =>
       payload.primaryType == IncomingShareContentType.archive;
 
   @override
-  ShareThreatAnalysis analyze(IncomingSharePayload payload) => _fileAnalysis(
-    payload,
-    name,
-    'archive',
-    'Archive listing, nested-file, hash, and zip-bomb protection can be added through the isolated analyzer gateway.',
+  ShareThreatAnalysis analyze(
+    IncomingSharePayload payload,
+  ) => const ShareThreatAnalysis(
+    risk: ShareThreatRisk.unsupported,
+    status: ShareAnalysisStatus.analysisUnavailable,
+    title: 'Archive analysis is unavailable',
+    message:
+        'Cyber Uday received this archive safely, but a bounded ZIP inspection was not available for this platform. It was not opened or executed.',
+    indicators: <String>['ARCHIVE_ANALYSIS_UNAVAILABLE'],
+    recommendations: <String>[
+      'Keep the archive closed until it can be inspected safely.',
+    ],
+    analyzerName: 'Archive Static Analysis Intake',
   );
+
+  Future<ShareThreatAnalysis> analyzeAsync(
+    IncomingSharePayload payload,
+    QuarantineRecord quarantine,
+  ) async {
+    final Map<int, QuarantinedContent> contentByIndex =
+        <int, QuarantinedContent>{
+          for (final QuarantinedContent content in quarantine.contents)
+            content.attachmentIndex: content,
+        };
+    final Map<String, List<String>> evidence = <String, List<String>>{};
+    final List<String> threatIndicators = <String>[];
+    final List<String> recommendations = <String>[
+      'Do not open or execute files from this archive.',
+      'Verify the sender and source independently before extracting anything.',
+      'Do not install APKs or run scripts found inside the archive.',
+    ];
+    bool hasUnknown = false;
+    bool hasPartial = false;
+    bool inspected = false;
+
+    for (int index = 0; index < payload.attachments.length; index++) {
+      final IncomingShareAttachment attachment = payload.attachments[index];
+      if (attachment.contentType != IncomingShareContentType.archive) continue;
+      inspected = true;
+      final QuarantinedContent? content = contentByIndex[index];
+      if (content == null) {
+        hasUnknown = true;
+        _addEvidence(
+          evidence,
+          'ARCHIVE_ANALYSIS_STATUS',
+          'ARCHIVE_SOURCE_UNAVAILABLE',
+        );
+        continue;
+      }
+      final ArchiveStaticAnalysisResult result = await intelligence.analyze(
+        reference: content.reference,
+        fileName: attachment.displayName,
+        mimeType: attachment.mimeType,
+      );
+      _mergeEvidence(evidence, result.evidence);
+      hasUnknown =
+          hasUnknown ||
+          result.status == ArchiveAnalysisStatus.unknown ||
+          result.status == ArchiveAnalysisStatus.unsupported;
+      hasPartial = hasPartial || result.status == ArchiveAnalysisStatus.partial;
+      hasUnknown =
+          hasUnknown ||
+          result.apkResults.any(
+            (ApkStaticAnalysisResult apk) =>
+                apk.status == ApkAnalysisStatus.unknown ||
+                apk.status == ApkAnalysisStatus.unsupported,
+          );
+      hasPartial =
+          hasPartial ||
+          result.apkResults.any(
+            (ApkStaticAnalysisResult apk) =>
+                apk.status == ApkAnalysisStatus.partial,
+          );
+      threatIndicators.addAll(
+        result.indicators.where(_isArchiveThreatIndicator),
+      );
+
+      for (final String url in result.extractedUrls) {
+        final UrlThreatAnalysis urlResult = urlAnalyzer.urlAnalysis.analyze(
+          url,
+        );
+        _addEvidence(evidence, 'ARCHIVE_URL_ANALYSIS', url);
+        _mergeEvidence(evidence, urlResult.localEvidence);
+        if (_urlHasWarning(urlResult)) {
+          threatIndicators.add('ARCHIVE_SUSPICIOUS_URL: $url');
+        }
+      }
+      for (final String sample in result.textSamples) {
+        final ShareThreatAnalysis textResult = textAnalyzer.analyze(
+          IncomingSharePayload(
+            id: '${payload.id}-archive-text-$index',
+            receivedAt: payload.receivedAt,
+            text: sample,
+            attachments: const <IncomingShareAttachment>[],
+            sourceApplication: 'Local archive text extraction',
+          ),
+        );
+        if (textResult.indicators.any(_isThreatIndicator)) {
+          threatIndicators.addAll(
+            textResult.indicators.map((item) => 'ARCHIVE_TEXT: $item'),
+          );
+        }
+      }
+    }
+
+    if (!inspected || hasUnknown || (hasPartial && threatIndicators.isEmpty)) {
+      return ShareThreatAnalysis(
+        risk: ShareThreatRisk.unsupported,
+        status: ShareAnalysisStatus.analysisUnavailable,
+        title: 'Archive analysis is inconclusive',
+        message:
+            'Cyber Uday completed only a bounded partial review. The archive was not opened or executed, and this is not a safe verdict.',
+        indicators: List<String>.unmodifiable(<String>[
+          ...threatIndicators,
+          'ARCHIVE_ANALYSIS_INCOMPLETE: insufficient evidence is not treated as safe.',
+        ]),
+        recommendations: recommendations,
+        analyzerName: name,
+        structuredEvidence: _freezeEvidence(evidence),
+      );
+    }
+    final ShareThreatAnalysis result = _riskResult(
+      analyzerName: name,
+      indicators: threatIndicators,
+      suspiciousTitle: 'This archive contains warning signs',
+      safeMessage:
+          'No common warning signs were found in the bounded archive inventory. This does not prove that the archive or its contents are safe.',
+    );
+    return ShareThreatAnalysis(
+      risk: result.risk,
+      status: hasPartial ? ShareAnalysisStatus.partial : result.status,
+      title: result.title,
+      message: result.message,
+      indicators: result.indicators,
+      recommendations: <String>[...result.recommendations, ...recommendations],
+      analyzerName: result.analyzerName,
+      structuredEvidence: _freezeEvidence(evidence),
+    );
+  }
 }
 
 class MediaAnalyzer implements ShareAnalyzer {
@@ -802,6 +1070,45 @@ bool _isThreatIndicator(String value) {
   ];
   if (analysisOnly.any(candidate.startsWith)) return false;
   return value.trim().isNotEmpty;
+}
+
+bool _isApkThreatIndicator(String value) {
+  final String candidate = value.toLowerCase();
+  const List<String> analysisOnly = <String>[
+    'apk_analysis_',
+    'apk_invalid_input',
+    'apk_source_unavailable',
+    'apk_size_limit',
+    'apk_manifest_analysis_incomplete',
+    'apk_dex_analysis_incomplete',
+    'signature_analysis_unavailable',
+  ];
+  if (analysisOnly.any(candidate.startsWith)) return false;
+  return value.trim().isNotEmpty;
+}
+
+bool _isArchiveThreatIndicator(String value) {
+  final String candidate = value.toLowerCase();
+  const List<String> analysisOnly = <String>[
+    'archive_analysis_',
+    'archive_invalid_input',
+    'archive_source_unavailable',
+    'archive_size_limit',
+    'archive_inspected_bytes_limit',
+  ];
+  return !analysisOnly.any(candidate.startsWith) && value.trim().isNotEmpty;
+}
+
+bool _urlHasWarning(UrlThreatAnalysis analysis) {
+  final String evidence = analysis.indicators.join(' ').toLowerCase();
+  return evidence.contains('ip address') ||
+      evidence.contains('punycode') ||
+      evidence.contains('shortener') ||
+      evidence.contains('credential') ||
+      evidence.contains('phishing') ||
+      evidence.contains('suspicious') ||
+      evidence.contains('non-https') ||
+      evidence.contains('excessive');
 }
 
 bool _isActiveContentIndicator(String value) {
