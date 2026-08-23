@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../models/incoming_share_payload.dart';
 import '../models/threat_analysis.dart';
+import '../models/threat_intelligence.dart';
 import 'quarantine_storage.dart';
 import 'security_audit_logger.dart';
 import 'security_pipeline_config.dart';
@@ -11,6 +12,9 @@ import 'input_classifier.dart';
 import 'file_type_inspector.dart';
 import 'file_type_validation.dart';
 import 'threat_analysis_cancellation.dart';
+import 'threat_intelligence_gateway.dart';
+import 'threat_intelligence_provider_factory.dart';
+import 'url_threat_analysis_service.dart';
 
 typedef ThreatAnalysisStageCallback = void Function(ThreatAnalysisStage stage);
 typedef ThreatAnalysisExecutor =
@@ -35,6 +39,7 @@ class ThreatAnalysisOrchestrator {
     this.fileTypeInspector = const FileTypeInspector(),
     this.quarantineStorage = const TemporaryQuarantineStorage(),
     this.auditLogger = const NoOpSecurityAuditLogger(),
+    this.threatIntelligenceGateway,
     this.analysisExecutor,
   });
 
@@ -46,6 +51,7 @@ class ThreatAnalysisOrchestrator {
   final FileTypeInspector fileTypeInspector;
   final QuarantineStorage quarantineStorage;
   final SecurityAuditLogger auditLogger;
+  final ThreatIntelligenceGateway? threatIntelligenceGateway;
   final ThreatAnalysisExecutor? analysisExecutor;
 
   Future<ThreatAnalysisRun> analyze(
@@ -203,11 +209,23 @@ class ThreatAnalysisOrchestrator {
       );
       onStage?.call(ThreatAnalysisStage.calculatingRisk);
       final ThreatFeatures features = _featuresFrom(workingRequest, analysis);
+      final ThreatIntelligenceGateway intelligenceGateway =
+          threatIntelligenceGateway ??
+          ThreatIntelligenceProviderFactory.createGateway(
+            auditLogger: auditLogger,
+            config: config,
+          );
+      final List<ThreatIntelligenceResult> intelligenceResults =
+          await _lookupThreatIntelligence(
+            request: workingRequest,
+            gateway: intelligenceGateway,
+          );
       final ThreatAnalysisResult result = fusionEngine.fuse(
         request: workingRequest,
         analysis: analysis,
         features: features,
         durationMs: stopwatch.elapsedMilliseconds,
+        threatIntelligenceResults: intelligenceResults,
       );
       auditLogger.record(
         SecurityAuditEvent(
@@ -506,6 +524,56 @@ class ThreatAnalysisOrchestrator {
           false,
     );
   }
+
+  Future<List<ThreatIntelligenceResult>> _lookupThreatIntelligence({
+    required ThreatAnalysisRequest request,
+    required ThreatIntelligenceGateway gateway,
+  }) async {
+    final List<Future<ThreatIntelligenceResult>> lookups =
+        <Future<ThreatIntelligenceResult>>[];
+    final String? sha256Value = request.sha256;
+    if (sha256Value != null && sha256Value.isNotEmpty) {
+      lookups.add(
+        gateway.lookupHash(
+          requestId: request.requestId,
+          sha256Value: sha256Value,
+        ),
+      );
+    }
+
+    final String? submittedUrl = request.url;
+    if (submittedUrl != null && submittedUrl.isNotEmpty) {
+      lookups.add(
+        gateway.lookupUrl(requestId: request.requestId, url: submittedUrl),
+      );
+      final UrlNormalizationResult normalized = const UrlNormalizationService()
+          .normalize(submittedUrl);
+      final NormalizedUrl? normalizedUrl = normalized.url;
+      if (normalizedUrl != null) {
+        final UrlDomainParts domain = const PublicSuffixDomainParser().parse(
+          normalizedUrl.uri.host,
+        );
+        if (domain.isIpAddress) {
+          lookups.add(
+            gateway.lookupIp(requestId: request.requestId, ip: domain.hostname),
+          );
+        } else if (!domain.isLocalhost) {
+          final String domainIndicator =
+              domain.registrableDomain ?? domain.hostname;
+          lookups.add(
+            gateway.lookupDomain(
+              requestId: request.requestId,
+              domain: domainIndicator,
+            ),
+          );
+        }
+      }
+    }
+    if (lookups.isEmpty) return const <ThreatIntelligenceResult>[];
+    return List<ThreatIntelligenceResult>.unmodifiable(
+      await Future.wait(lookups),
+    );
+  }
 }
 
 class ThreatFusionEngine {
@@ -516,6 +584,8 @@ class ThreatFusionEngine {
     required ShareThreatAnalysis analysis,
     required ThreatFeatures features,
     required int durationMs,
+    List<ThreatIntelligenceResult> threatIntelligenceResults =
+        const <ThreatIntelligenceResult>[],
   }) {
     final (
       ThreatVerdict verdict,
@@ -588,6 +658,14 @@ class ThreatFusionEngine {
       features.archiveBombIndicator,
       features.archiveNestedIndicator,
     ].where((bool value) => value).length;
+    final bool maliciousIntelligence = threatIntelligenceResults.any(
+      (ThreatIntelligenceResult result) =>
+          result.status == ThreatIntelligenceStatus.malicious,
+    );
+    final bool suspiciousIntelligence = threatIntelligenceResults.any(
+      (ThreatIntelligenceResult result) =>
+          result.status == ThreatIntelligenceStatus.suspicious,
+    );
     final int signalBonus = features.unknownRisk
         ? 0
         : (features.activeContentIndicator ? 8 : 0) +
@@ -604,14 +682,56 @@ class ThreatFusionEngine {
               (features.archiveExecutableIndicator ? 8 : 0) +
               (features.archiveBombIndicator ? 8 : 0) +
               (features.archiveNestedIndicator ? 4 : 0);
-    final int adjustedScore = (score + signalBonus).clamp(0, 100);
+    final int intelligenceBonus = maliciousIntelligence
+        ? 20
+        : suspiciousIntelligence
+        ? 8
+        : 0;
+    int adjustedScore = (score + signalBonus + intelligenceBonus).clamp(0, 100);
+    if (maliciousIntelligence && adjustedScore < 85) adjustedScore = 85;
+    if (suspiciousIntelligence &&
+        verdict == ThreatVerdict.unknown &&
+        adjustedScore < 55) {
+      adjustedScore = 55;
+    }
     final bool justifiedCritical =
         status == ThreatResultStatus.complete &&
         strongSignalCount >= 3 &&
         adjustedScore >= 95;
     final ThreatVerdict adjustedVerdict = justifiedCritical
         ? ThreatVerdict.critical
+        : maliciousIntelligence &&
+              (verdict == ThreatVerdict.low ||
+                  verdict == ThreatVerdict.medium ||
+                  verdict == ThreatVerdict.unknown)
+        ? ThreatVerdict.high
+        : suspiciousIntelligence && verdict == ThreatVerdict.unknown
+        ? ThreatVerdict.medium
         : verdict;
+    final ThreatFeatures adjustedFeatures = maliciousIntelligence
+        ? features.copyWith(knownThreat: true)
+        : features;
+    final List<ThreatIntelligenceResult> actionableIntelligence =
+        threatIntelligenceResults
+            .where(
+              (ThreatIntelligenceResult result) =>
+                  result.status == ThreatIntelligenceStatus.malicious ||
+                  result.status == ThreatIntelligenceStatus.suspicious,
+            )
+            .toList(growable: false);
+    final List<String> intelligenceEvidence = actionableIntelligence
+        .expand(
+          (ThreatIntelligenceResult result) => <String>[
+            'Threat intelligence: ${result.status.name.toUpperCase()}',
+            ...result.matchedEvidence,
+          ],
+        )
+        .toList(growable: false);
+    final Map<String, List<String>> structuredEvidence = <String, List<String>>{
+      ...analysis.structuredEvidence,
+      if (intelligenceEvidence.isNotEmpty)
+        'THREAT_INTELLIGENCE': List<String>.unmodifiable(intelligenceEvidence),
+    };
     return ThreatAnalysisResult(
       requestId: request.requestId,
       status: status,
@@ -626,16 +746,23 @@ class ThreatFusionEngine {
       evidence: List<String>.unmodifiable(<String>[
         'Analyzer: ${analysis.analyzerName}',
         ...analysis.indicators,
+        ...intelligenceEvidence,
       ]),
       recommendedActions: List<String>.unmodifiable(analysis.recommendations),
       analyzedAt: DateTime.now(),
-      analyzerResults: <String>[analysis.analyzerName],
+      analyzerResults: List<String>.unmodifiable(<String>{
+        analysis.analyzerName,
+        if (actionableIntelligence.isNotEmpty) 'Threat intelligence',
+      }),
       durationMs: durationMs,
-      features: features,
+      features: adjustedFeatures,
       sha256: request.sha256,
       inputType: request.inputType,
       detectedType: request.inputType,
-      structuredEvidence: analysis.structuredEvidence,
+      structuredEvidence: structuredEvidence,
+      threatIntelligenceResults: List<ThreatIntelligenceResult>.unmodifiable(
+        threatIntelligenceResults,
+      ),
     );
   }
 }
@@ -649,6 +776,7 @@ class ThreatAnalysisEngine extends ThreatAnalysisOrchestrator {
     super.classifier,
     super.quarantineStorage,
     super.auditLogger,
+    super.threatIntelligenceGateway,
     super.analysisExecutor,
   });
 }

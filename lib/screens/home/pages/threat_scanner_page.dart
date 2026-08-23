@@ -15,9 +15,10 @@ import '../../share_to_scan_screen.dart';
 import '../widgets/home_shared_widgets.dart';
 
 class ThreatScannerPage extends StatefulWidget {
-  const ThreatScannerPage({super.key, this.incomingShare});
+  const ThreatScannerPage({super.key, this.incomingShare, this.uploadService});
 
   final IncomingSharePayload? incomingShare;
+  final ManualFileUploadService? uploadService;
 
   @override
   State<ThreatScannerPage> createState() => _ThreatScannerPageState();
@@ -28,8 +29,7 @@ class _ThreatScannerPageState extends State<ThreatScannerPage> {
   final TextEditingController _appController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   final ThreatAnalysisEngine _analysisEngine = const ThreatAnalysisEngine();
-  final ManualFileUploadService _uploadService =
-      const ManualFileUploadService();
+  late final ManualFileUploadService _uploadService;
   ShareThreatAnalysis? _shareAnalysis;
   ThreatAnalysisResult? _analysisResult;
   ThreatAnalysisStage _analysisStage = ThreatAnalysisStage.receiving;
@@ -39,6 +39,7 @@ class _ThreatScannerPageState extends State<ThreatScannerPage> {
   @override
   void initState() {
     super.initState();
+    _uploadService = widget.uploadService ?? ManualFileUploadService();
     _applyIncomingShare();
   }
 
@@ -104,11 +105,21 @@ class _ThreatScannerPageState extends State<ThreatScannerPage> {
         apkOnly: apkOnly,
       );
       if (!mounted || payload == null) return;
-      await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => ShareToScanScreen(payload: payload),
-        ),
-      );
+      try {
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => ShareToScanScreen(payload: payload),
+          ),
+        );
+      } finally {
+        _uploadService.releasePayload(payload);
+      }
+    } on ManualFilePickerException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -293,14 +304,12 @@ class _ThreatScannerPageState extends State<ThreatScannerPage> {
                   ActionChipWidget(
                     label: 'Upload APK',
                     icon: Icons.android_rounded,
-                    isLoading: _isPicking,
-                    onTap: () => _pickFiles(apkOnly: true),
+                    onTap: _isPicking ? null : () => _pickFiles(apkOnly: true),
                   ),
                   ActionChipWidget(
                     label: 'Upload file',
                     icon: Icons.upload_file_rounded,
-                    isLoading: _isPicking,
-                    onTap: () => _pickFiles(apkOnly: false),
+                    onTap: _isPicking ? null : () => _pickFiles(apkOnly: false),
                   ),
                   if (fromShare)
                     ActionChipWidget(

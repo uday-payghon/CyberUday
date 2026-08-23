@@ -22,6 +22,10 @@ class SecurityPipelineConfig {
     this.maxApkDexStrings = 20000,
     this.maxApkTextSamples = 50,
     this.maxAnalysisTime = const Duration(seconds: 60),
+    this.threatIntelligenceTimeout = const Duration(seconds: 3),
+    this.threatIntelligenceCacheTtl = const Duration(minutes: 10),
+    this.maxThreatIntelligenceCacheEntries = 256,
+    this.maxConcurrentThreatIntelligenceLookups = 8,
     this.quarantineRetention = const Duration(minutes: 15),
   });
 
@@ -47,5 +51,9 @@ class SecurityPipelineConfig {
   final int maxApkDexStrings;
   final int maxApkTextSamples;
   final Duration maxAnalysisTime;
+  final Duration threatIntelligenceTimeout;
+  final Duration threatIntelligenceCacheTtl;
+  final int maxThreatIntelligenceCacheEntries;
+  final int maxConcurrentThreatIntelligenceLookups;
   final Duration quarantineRetention;
 }

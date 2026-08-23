@@ -53,3 +53,9 @@ app.*.map.json
 
 # Spring Boot backend
 /backend/target/
+
+# Firebase Functions build/runtime artifacts
+/functions/lib/
+/functions/node_modules/
+/functions/.runtimeconfig.json
+firebase-debug.log

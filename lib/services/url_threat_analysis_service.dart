@@ -1,8 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:public_suffix/public_suffix.dart';
 
-import 'threat_analysis_interfaces.dart';
-
 /// A normalized, non-network representation of a submitted HTTP(S) URL.
 class NormalizedUrl {
   const NormalizedUrl({
@@ -175,37 +173,12 @@ class UrlThreatAnalysis {
   int get signalCount => indicators.length;
 }
 
-/// Phase 1B.1's explicitly unconfigured reputation boundary. It never
-/// contacts external services and never fabricates a reputation result.
-class NotConfiguredThreatIntelligenceProvider
-    implements ThreatIntelligenceProvider {
-  const NotConfiguredThreatIntelligenceProvider();
-
-  @override
-  Future<ThreatIntelligenceResult> lookupDomain(String domain) =>
-      _unconfigured();
-
-  @override
-  Future<ThreatIntelligenceResult> lookupHash(String sha256) => _unconfigured();
-
-  @override
-  Future<ThreatIntelligenceResult> lookupUrl(String url) => _unconfigured();
-
-  Future<ThreatIntelligenceResult> _unconfigured() async =>
-      const ThreatIntelligenceResult(
-        knownThreat: false,
-        evidence: <String>['Threat intelligence is not configured.'],
-      );
-}
-
 /// Deterministic local URL feature extraction. It does not open submitted
 /// links, resolve DNS, download content, execute JavaScript, or follow redirects.
 class UrlThreatAnalysisService {
   const UrlThreatAnalysisService({
     this.normalizer = const UrlNormalizationService(),
     this.domainParser = const PublicSuffixDomainParser(),
-    this.threatIntelligenceProvider =
-        const NotConfiguredThreatIntelligenceProvider(),
   });
 
   static const Set<String> _shorteners = <String>{
@@ -246,7 +219,6 @@ class UrlThreatAnalysisService {
 
   final UrlNormalizationService normalizer;
   final PublicSuffixDomainParser domainParser;
-  final ThreatIntelligenceProvider threatIntelligenceProvider;
 
   UrlThreatAnalysis analyze(String rawUrl, {String? surroundingText}) {
     final UrlNormalizationResult normalization = normalizer.normalize(rawUrl);
@@ -271,7 +243,7 @@ class UrlThreatAnalysisService {
       'DOMAIN_FEATURES': <String>[],
       'PHISHING_INDICATORS': <String>[],
       'REPUTATION_RESULT': const <String>[
-        'Threat intelligence is not configured; no reputation lookup was performed.',
+        'Reputation is evaluated separately by the Threat Intelligence Gateway.',
       ],
       'REDIRECT_RESULT': const <String>[
         'Redirect analysis is unavailable; Cyber Uday did not open or follow this link.',

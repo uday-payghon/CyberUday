@@ -1,4 +1,5 @@
 import '../models/threat_analysis.dart';
+import '../models/threat_intelligence.dart';
 
 class ThreatMLPrediction {
   const ThreatMLPrediction({required this.label, required this.confidence});
@@ -12,23 +13,15 @@ abstract interface class ThreatMLModel {
   Future<ThreatMLPrediction> predict(ThreatFeatures features);
 }
 
-class ThreatIntelligenceResult {
-  const ThreatIntelligenceResult({
-    required this.knownThreat,
-    required this.evidence,
-  });
-
-  final bool knownThreat;
-  final List<String> evidence;
-}
-
 /// Future reputation/hash provider boundary for approved intelligence sources.
 abstract interface class ThreatIntelligenceProvider {
-  Future<ThreatIntelligenceResult> lookupHash(String sha256);
+  String get providerName;
 
-  Future<ThreatIntelligenceResult> lookupDomain(String domain);
+  bool get isConfigured;
 
-  Future<ThreatIntelligenceResult> lookupUrl(String url);
+  Future<ThreatIntelligenceResult> lookup(
+    ThreatIntelligenceLookupRequest request,
+  );
 }
 
 class DeepAnalysisResult {

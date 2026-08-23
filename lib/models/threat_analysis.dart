@@ -1,4 +1,5 @@
 import 'incoming_share_payload.dart';
+import 'threat_intelligence.dart';
 
 enum ThreatAnalysisStage {
   receiving,
@@ -205,6 +206,31 @@ class ThreatFeatures {
   final bool archiveExecutableIndicator;
   final bool archiveBombIndicator;
   final bool archiveNestedIndicator;
+
+  ThreatFeatures copyWith({bool? knownThreat}) => ThreatFeatures(
+    suspiciousDomain: suspiciousDomain,
+    phishingIndicator: phishingIndicator,
+    suspiciousUrl: suspiciousUrl,
+    impersonationIndicator: impersonationIndicator,
+    urgencyIndicator: urgencyIndicator,
+    credentialTheftIndicator: credentialTheftIndicator,
+    suspiciousFileType: suspiciousFileType,
+    knownThreat: knownThreat ?? this.knownThreat,
+    unknownRisk: unknownRisk,
+    activeContentIndicator: activeContentIndicator,
+    embeddedFileIndicator: embeddedFileIndicator,
+    launchActionIndicator: launchActionIndicator,
+    javascriptIndicator: javascriptIndicator,
+    documentAnalysisIncomplete: documentAnalysisIncomplete,
+    apkSecurityIndicator: apkSecurityIndicator,
+    apkAccessibilityIndicator: apkAccessibilityIndicator,
+    apkPersistenceIndicator: apkPersistenceIndicator,
+    apkPermissionCombinationIndicator: apkPermissionCombinationIndicator,
+    apkDynamicCodeIndicator: apkDynamicCodeIndicator,
+    archiveExecutableIndicator: archiveExecutableIndicator,
+    archiveBombIndicator: archiveBombIndicator,
+    archiveNestedIndicator: archiveNestedIndicator,
+  );
 }
 
 class ThreatAnalysisResult {
@@ -225,6 +251,7 @@ class ThreatAnalysisResult {
     this.inputType,
     this.detectedType,
     this.structuredEvidence = const <String, List<String>>{},
+    this.threatIntelligenceResults = const <ThreatIntelligenceResult>[],
   });
 
   final String requestId;
@@ -243,4 +270,5 @@ class ThreatAnalysisResult {
   final IncomingShareContentType? inputType;
   final IncomingShareContentType? detectedType;
   final Map<String, List<String>> structuredEvidence;
+  final List<ThreatIntelligenceResult> threatIntelligenceResults;
 }

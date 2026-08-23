@@ -8,6 +8,7 @@ import 'core/cyber_design_system.dart';
 import 'l10n/app_localizations.dart';
 import 'models/incoming_share_payload.dart';
 import 'services/auth_service.dart';
+import 'services/app_check_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/share_to_scan_screen.dart';
 import 'services/incoming_share_service.dart';
@@ -21,6 +22,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await PublicSuffixDomainParser.initialize();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await AppCheckService.instance.initialize();
   await AuthService.instance.initializePersistence();
   await IncomingShareService.instance.initialize();
   runApp(const CyberUApp());
